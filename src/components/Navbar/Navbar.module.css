@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  background: var(--bg-main-color, #0a0a1f);
+  border-bottom: 2px solid #221B59;
 }
 
 /* ---- Brand ---- */
@@ -16,15 +16,7 @@
   gap: 0.75rem;
   text-decoration: none;
 }
-.logoBox {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #12122b;
-  border: 1px solid var(--accent-cyan, #22d3ee);
-}
+
 .brandName {
   font-size: 1rem;
   color: var(--accent-gold, #fcd34d);

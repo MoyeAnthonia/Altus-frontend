@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styles from "./Navbar.module.css";
 import Button from "../Button/Button";
+import logo from "../../assets/logo-icon.png";
 
 // declare the props Data type
 type NavLink = {
@@ -29,11 +30,9 @@ export function Navbar({
   return (
     <nav className={styles.navbar}>
       <a href="#" className={styles.brandLogo}>
-        <span className={styles.logoBox}>
-          <svg viewBox="0 0 24 24" width="20" height="20">
-            <path d="M8 5v14l11-7z" fill="var(--accent-cyan, #22d3ee)" />
-          </svg>
-        </span>
+      
+         <img src={logo} alt="Moveverse Logo" width="40" height="40" />
+
         <span className={styles.brandName}>{brand}</span>
       </a>
 
