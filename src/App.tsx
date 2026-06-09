@@ -1,18 +1,20 @@
-import './styles/global.css'
-import { Navbar } from './components/Navbar/Navbar'
-import { Home, Features } from './pages/Home'
-
+import "./styles/global.css";
+import { Navbar } from "./components/Navbar/Navbar";
+import { Home, Features, AudienceSection, SelectWorkoutSection } from "./pages/Home";
+import {} from "./pages/Home";
 function App() {
   // const [count, setCount] = useState(0)
 
   return (
     <>
-       <Navbar />
+      <Navbar />
       <Home />
       <Features />
+      <AudienceSection />
+      <SelectWorkoutSection />
       {/* <Footer /> */}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
