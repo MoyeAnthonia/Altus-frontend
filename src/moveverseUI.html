@@ -1,0 +1,759 @@
+import React, { useState, useEffect, useRef } from "react";
+
+/* =========================================================================
+   MoveVerse — Gamified, motion-controlled fitness web app (UI/UX mockup)
+   Single-file React + CSS prototype.
+   Pose detection / camera are SIMULATED for the prototype (clearly labeled).
+   ========================================================================= */
+
+const STYLES = `
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+
+.mv {
+  /* ---- DARK THEME (default) ---- */
+  --bg:        #06080f;
+  --bg-2:      #0b1020;
+  --panel:     #0e1426;
+  --panel-2:   #11182e;
+  --ink:       #eef3ff;
+  --ink-soft:  #9fb0d0;
+  --ink-faint: #5e6f93;
+  --line:      #1d2742;
+  --cyan:      #38e1ff;
+  --violet:    #9b6dff;
+  --gold:      #ffce4d;
+  --green:     #4ade80;
+  --pink:      #ff6ad5;
+  --cloud:     #1a1340;
+  --glow:      0 0 0 2px var(--line), 0 0 22px -6px var(--cyan);
+}
+.mv[data-theme="light"] {
+  --bg:        #eef2fb;
+  --bg-2:      #e3e9f7;
+  --panel:     #ffffff;
+  --panel-2:   #f4f7ff;
+  --ink:       #0d1430;
+  --ink-soft:  #495577;
+  --ink-faint: #8b97b8;
+  --line:      #d2dbf0;
+  --cyan:      #0aa6c9;
+  --violet:    #6f3ff5;
+  --gold:      #d99400;
+  --green:     #1f9d57;
+  --pink:      #c43fa0;
+  --cloud:     #cdd6f5;
+}
+
+.mv * { box-sizing: border-box; }
+.mv {
+  font-family: 'JetBrains Mono', monospace;
+  background:
+    radial-gradient(900px 500px at 80% -5%, color-mix(in srgb, var(--violet) 16%, transparent), transparent 60%),
+    radial-gradient(700px 400px at 5% 5%, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  min-height: 100%;
+  position: relative;
+  overflow-x: hidden;
+}
+.mv::before {            /* starfield */
+  content:""; position: fixed; inset: 0; pointer-events: none; opacity: .6;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, var(--ink-soft) 50%, transparent),
+    radial-gradient(1px 1px at 70% 20%, var(--ink-soft) 50%, transparent),
+    radial-gradient(1px 1px at 40% 70%, var(--ink-soft) 50%, transparent),
+    radial-gradient(1px 1px at 85% 60%, var(--ink-soft) 50%, transparent),
+    radial-gradient(1px 1px at 55% 45%, var(--ink-soft) 50%, transparent);
+  background-size: 100% 100%;
+}
+
+.px { font-family:'Press Start 2P', monospace; line-height:1.55; letter-spacing:.5px; }
+
+/* ---------- layout ---------- */
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; position: relative; z-index: 1; }
+.clouds {
+  position: absolute; left:0; right:0; bottom:0; height: 160px; z-index:0;
+  background:
+    radial-gradient(120px 70px at 10% 100%, var(--cloud) 60%, transparent 62%),
+    radial-gradient(160px 90px at 35% 100%, var(--cloud) 60%, transparent 62%),
+    radial-gradient(140px 80px at 60% 100%, var(--cloud) 60%, transparent 62%),
+    radial-gradient(180px 95px at 88% 100%, var(--cloud) 60%, transparent 62%);
+  opacity:.7; pointer-events:none;
+}
+
+/* ---------- nav ---------- */
+.nav {
+  position: sticky; top:0; z-index: 30;
+  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+.nav-in { display:flex; align-items:center; gap:18px; height:64px; }
+.brand { display:flex; align-items:center; gap:12px; cursor:pointer; }
+.brand .logo {
+  width:34px; height:34px; border-radius:8px; display:grid; place-items:center;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  box-shadow: 0 0 18px -4px var(--cyan);
+}
+.brand .name { font-size:13px; color: var(--gold); text-shadow: 0 0 12px color-mix(in srgb,var(--gold) 60%,transparent); }
+.nav-links { display:flex; gap:18px; margin-left:8px; }
+.nav-links button {
+  background:none; border:none; color: var(--ink-soft); cursor:pointer;
+  font-family:'Press Start 2P', monospace; font-size:8px; letter-spacing:1px; padding:6px 2px;
+}
+.nav-links button:hover, .nav-links button[data-active="true"] { color: var(--cyan); }
+.nav-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+
+/* ---------- buttons ---------- */
+.btn {
+  font-family:'Press Start 2P', monospace; font-size:9px; letter-spacing:1px;
+  border-radius:10px; padding:11px 16px; cursor:pointer; border:1px solid transparent;
+  transition: transform .12s ease, box-shadow .15s ease; white-space:nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: linear-gradient(135deg, var(--cyan), #2f7bff); color:#04101f; box-shadow:0 8px 22px -10px var(--cyan); }
+.btn-violet  { background: linear-gradient(135deg, var(--violet), var(--pink)); color:#0a0517; }
+.btn-ghost   { background: color-mix(in srgb,var(--panel) 70%,transparent); color: var(--ink); border:1px solid var(--line); }
+.btn-gold    { background:none; color: var(--gold); border:1px solid var(--gold); }
+.btn-green   { background:none; color: var(--green); border:1px solid var(--green); }
+.btn:hover   { box-shadow: 0 0 0 1px var(--cyan), 0 10px 26px -14px var(--cyan); }
+
+.toggle {
+  display:flex; align-items:center; gap:6px; border:1px solid var(--line);
+  background: var(--panel); border-radius:999px; padding:4px; cursor:pointer;
+}
+.toggle span { font-size:14px; padding:3px 7px; border-radius:999px; line-height:1; }
+.toggle .on { background: color-mix(in srgb,var(--gold) 30%,transparent); }
+
+/* ---------- badges/pills ---------- */
+.pill {
+  display:inline-block; font-family:'Press Start 2P', monospace; font-size:8px;
+  padding:7px 12px; border-radius:999px; border:1px solid var(--line);
+  color: var(--cyan); background: color-mix(in srgb,var(--cyan) 8%,transparent);
+}
+.pill.gold  { color:var(--gold);   border-color: color-mix(in srgb,var(--gold) 60%,var(--line)); background: color-mix(in srgb,var(--gold) 8%,transparent); }
+.pill.violet{ color:var(--violet); border-color: color-mix(in srgb,var(--violet) 60%,var(--line)); background: color-mix(in srgb,var(--violet) 8%,transparent); }
+
+/* ---------- cards ---------- */
+.card {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border:1px solid var(--line); border-radius:16px; padding:22px;
+}
+.card.glow { box-shadow: 0 0 0 1px color-mix(in srgb,var(--cyan) 30%,transparent), 0 20px 50px -30px var(--cyan); }
+.icon-box {
+  width:52px; height:52px; border-radius:12px; display:grid; place-items:center; font-size:22px;
+  border:1px solid var(--line); background: color-mix(in srgb,var(--cyan) 8%,transparent);
+}
+
+/* ---------- hero ---------- */
+.hero { display:grid; grid-template-columns:1.05fr .95fr; gap:34px; align-items:center; padding:54px 0 30px; }
+.hero h1 { font-size:40px; margin:14px 0 14px; line-height:1.18; }
+.hero p { color: var(--ink-soft); max-width:460px; line-height:1.7; }
+.stats { display:flex; gap:30px; margin-top:26px; }
+.stat b { display:block; font-family:'Press Start 2P', monospace; font-size:20px; color: var(--cyan); }
+.stat span { font-family:'Press Start 2P', monospace; font-size:8px; color: var(--ink-faint); letter-spacing:1px; }
+.hero-art {
+  position:relative; aspect-ratio: 1/.82; border-radius:18px; overflow:hidden;
+  border:1px solid var(--line);
+  background:
+    radial-gradient(60% 60% at 60% 35%, color-mix(in srgb,var(--violet) 30%,transparent), transparent),
+    linear-gradient(180deg, #0c1330, var(--cloud));
+}
+.hero-cta { display:flex; gap:12px; margin-top:30px; flex-wrap:wrap; }
+
+/* section headings */
+.section { padding:46px 0; }
+.sec-head { text-align:center; margin-bottom:34px; }
+.sec-head h2 { font-size:24px; margin:14px 0 8px; }
+.sec-head p { color: var(--ink-soft); }
+
+.grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap:18px; }
+.grid2 { display:grid; grid-template-columns: repeat(2,1fr); gap:18px; }
+
+.step-num { font-family:'Press Start 2P', monospace; font-size:20px; color: var(--violet); opacity:.85; }
+.step h3 { font-size:11px; margin:14px 0 8px; }
+.step p { color: var(--ink-soft); font-size:13px; line-height:1.6; }
+
+/* footer */
+.foot { border-top:1px solid var(--line); padding:26px 0; margin-top:40px; display:flex; align-items:center; gap:14px; }
+.foot .links { margin-left:auto; display:flex; gap:18px; }
+.foot a { color: var(--ink-soft); text-decoration:none; font-size:13px; cursor:pointer; }
+
+/* ---------- form ---------- */
+.auth { max-width:430px; margin:0 auto; padding:50px 0; }
+.field { margin-bottom:16px; }
+.field label { display:block; font-family:'Press Start 2P', monospace; font-size:8px; color: var(--ink-soft); margin-bottom:9px; }
+.field input {
+  width:100%; background: var(--bg-2); border:1px solid var(--line); border-radius:10px;
+  padding:13px 14px; color: var(--ink); font-family:'JetBrains Mono', monospace; font-size:14px; outline:none;
+}
+.field input:focus { border-color: var(--cyan); box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 18%,transparent); }
+.hint { font-size:12px; color: var(--ink-faint); margin-top:6px; }
+.err { color: var(--pink); font-size:12px; margin-top:6px; }
+
+/* ---------- camera / warmup ---------- */
+.cam-grid { display:grid; grid-template-columns: 1.6fr 1fr; gap:18px; }
+.cam-feed {
+  position:relative; border-radius:16px; border:1px solid var(--line); overflow:hidden;
+  aspect-ratio:16/10; background: radial-gradient(80% 80% at 50% 40%, #0d1430, #06080f);
+  display:grid; place-items:center;
+}
+.cam-feed .scan { position:absolute; inset:0; background: linear-gradient(transparent, color-mix(in srgb,var(--cyan) 7%,transparent)); }
+.cam-foot { position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between;
+  padding:10px 14px; font-size:11px; color: var(--ink-soft); background: color-mix(in srgb,var(--bg) 60%,transparent); }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px; }
+.dot.off { background: var(--ink-faint); } .dot.on { background: var(--green); box-shadow:0 0 10px var(--green); }
+.check-row { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--line); border-radius:12px; margin-bottom:12px; background: var(--bg-2); }
+.check-box { width:22px; height:22px; border-radius:6px; border:2px solid var(--line); display:grid; place-items:center; flex:none; }
+.check-box.done { background: var(--green); border-color: var(--green); color:#04101f; }
+.check-row .lbl { font-family:'Press Start 2P', monospace; font-size:9px; }
+
+/* ---------- gameplay ---------- */
+.game-stage {
+  position:relative; border-radius:16px; border:1px solid var(--line); overflow:hidden;
+  height:440px; background: linear-gradient(180deg, #0a1130 0%, #14143a 60%, var(--cloud) 100%);
+}
+.player { position:absolute; left:50%; transform:translateX(-50%); transition: bottom .35s cubic-bezier(.3,1.3,.5,1); font-size:40px; }
+.rung { position:absolute; left:18%; right:18%; height:5px; border-radius:4px; background: color-mix(in srgb,var(--violet) 60%,transparent); }
+.hud { display:flex; gap:14px; justify-content:space-between; margin-bottom:14px; }
+.hud .box { flex:1; text-align:center; }
+.hud .box b { font-family:'Press Start 2P', monospace; font-size:18px; color: var(--cyan); display:block; }
+.hud .box span { font-family:'Press Start 2P', monospace; font-size:7px; color: var(--ink-faint); }
+
+/* ---------- dashboard ---------- */
+.stat-cards { display:grid; grid-template-columns: repeat(4,1fr); gap:16px; margin-bottom:22px; }
+.stat-cards .card { display:flex; align-items:center; gap:14px; }
+.stat-cards .em { font-size:30px; }
+.stat-cards b { font-family:'Press Start 2P', monospace; font-size:18px; color: var(--cyan); display:block; }
+.stat-cards small { font-family:'Press Start 2P', monospace; font-size:7px; color: var(--ink-faint); }
+.bars { display:flex; align-items:flex-end; gap:14px; height:170px; padding:0 6px; }
+.bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+.bar { width:60%; border-radius:6px 6px 0 0; background: linear-gradient(180deg, var(--cyan), var(--violet)); }
+.bar-col span { font-family:'Press Start 2P', monospace; font-size:7px; color: var(--ink-faint); }
+.bar-col em { font-style:normal; font-size:11px; color: var(--ink-soft); }
+.sess { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--line); }
+.sess:last-child { border-bottom:none; }
+.sess .when { font-size:13px; color: var(--ink-soft); }
+.sess .what { font-family:'Press Start 2P', monospace; font-size:9px; }
+.lvl-bar { height:12px; border-radius:999px; background: var(--bg-2); border:1px solid var(--line); overflow:hidden; margin-top:10px; }
+.lvl-bar > div { height:100%; background: linear-gradient(90deg, var(--gold), var(--pink)); }
+
+.badge-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:14px; }
+.badge { text-align:center; padding:18px 8px; border:1px solid var(--line); border-radius:12px; background: color-mix(in srgb,var(--violet) 7%,transparent); }
+.badge.locked { filter: grayscale(1); opacity:.45; }
+.badge .em { font-size:30px; } .badge .nm { font-family:'Press Start 2P', monospace; font-size:7px; margin-top:8px; color: var(--ink-soft); }
+
+@media (max-width: 860px) {
+  .hero, .cam-grid { grid-template-columns: 1fr; }
+  .grid3, .stat-cards, .badge-grid { grid-template-columns: 1fr 1fr; }
+  .nav-links { display:none; }
+}
+`;
+
+/* ---------------- small helpers ---------------- */
+const GAMES = [
+  { id: "sky", name: "SKY HOPPER", ex: "SQUATS", emoji: "🐦",
+    blurb: "Each squat lifts the bird higher through the clouds.", color: "var(--cyan)" },
+  { id: "lily", name: "LILY LEAPER", ex: "FROG JUMPS", emoji: "🐸",
+    blurb: "Each frog jump propels you to a higher lily pad.", color: "var(--green)" },
+];
+
+const WEEK = [
+  { d: "MON", v: 55 }, { d: "TUE", v: 60 }, { d: "WED", v: 0 }, { d: "THU", v: 80 },
+  { d: "FRI", v: 85 }, { d: "SAT", v: 60 }, { d: "SUN", v: 95 },
+];
+
+const SESSIONS = [
+  { date: "Jun 05, 2026", game: "SKY HOPPER", score: 95 },
+  { date: "Jun 04, 2026", game: "LILY LEAPER", score: 60 },
+  { date: "Jun 03, 2026", game: "SKY HOPPER", score: 85 },
+  { date: "Jun 02, 2026", game: "LILY LEAPER", score: 80 },
+];
+
+const EARNED = [["🐣","FIRST FLIGHT"],["⭐","RISING STAR"],["🌟","TRAILBLAZER"],["🏆","CHAMPION"],["🔥","WEEK WARRIOR"]];
+const LOCKED = [["👑","LEGEND"],["🎖️","MASTER"],["📅","MONTH KING"]];
+
+/* =================================================================== */
+export default function MoveVerse() {
+  const [theme, setTheme] = useState("dark");
+  const [page, setPage] = useState("home");          // home | signup | warmup | game | dashboard
+  const [game, setGame] = useState(GAMES[0]);
+
+  const go = (p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  return (
+    <div className="mv" data-theme={theme}>
+      <style>{STYLES}</style>
+
+      {/* ---------------- NAV ---------------- */}
+      <nav className="nav">
+        <div className="wrap nav-in">
+          <div className="brand" onClick={() => go("home")}>
+            <div className="logo">🏃</div>
+            <div className="name px">MOVEVERSE</div>
+          </div>
+          <div className="nav-links">
+            <button data-active={page==="home"} onClick={() => go("home")}>HOME</button>
+            <button onClick={() => { go("home"); }}>HOW IT WORKS</button>
+            <button data-active={page==="game"} onClick={() => go("game")}>GAMES</button>
+            <button data-active={page==="dashboard"} onClick={() => go("dashboard")}>DASHBOARD</button>
+          </div>
+          <div className="nav-right">
+            <button
+              className="toggle"
+              onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
+              title="Toggle light / dark mode" aria-label="Toggle theme">
+              <span className={theme==="light" ? "on" : ""}>☀️</span>
+              <span className={theme==="dark" ? "on" : ""}>🌙</span>
+            </button>
+            <button className="btn btn-gold" onClick={() => go("dashboard")}>STATS</button>
+            <button className="btn btn-primary" onClick={() => go("signup")}>PLAY NOW</button>
+          </div>
+        </div>
+      </nav>
+
+      {page === "home"      && <Home go={go} setGame={setGame} />}
+      {page === "signup"    && <Signup go={go} />}
+      {page === "warmup"    && <Warmup go={go} game={game} />}
+      {page === "game"      && <GamePicker go={go} game={game} setGame={setGame} />}
+      {page === "dashboard" && <Dashboard go={go} />}
+    </div>
+  );
+}
+
+/* =================== LANDING (Feature 0) =================== */
+function Home({ go, setGame }) {
+  return (
+    <>
+      <div className="wrap">
+        {/* hero */}
+        <section className="hero">
+          <div>
+            <span className="pill">WEBCAM-POWERED FITNESS</span>
+            <h1 className="px">TURN YOUR<br/>WORKOUTS<br/>INTO GAMES</h1>
+            <p>MoveVerse uses camera-based pose detection to turn real squats and
+               jumps into arcade gameplay. Every rep moves your character — earn XP,
+               keep your streak, and level up. Everything runs locally in your browser.</p>
+            <div className="stats">
+              <div className="stat"><b>2</b><span>GAMES</span></div>
+              <div className="stat"><b>10K+</b><span>PLAYERS</span></div>
+              <div className="stat"><b>4.9</b><span>RATING</span></div>
+            </div>
+            <div className="hero-cta">
+              <button className="btn btn-primary" onClick={() => go("signup")}>START PLAYING →</button>
+              <button className="btn btn-ghost" onClick={() => go("game")}>WATCH DEMO</button>
+            </div>
+          </div>
+          {/* right: someone playing with motion lines */}
+          <div className="hero-art">
+            <PlayerWithMotion />
+          </div>
+        </section>
+      </div>
+
+      {/* how it works */}
+      <div className="wrap section">
+        <div className="sec-head">
+          <span className="pill violet">HOW IT WORKS</span>
+          <h2 className="px">THREE STEPS TO START MOVING</h2>
+          <p>No app install, no equipment, no excuses.</p>
+        </div>
+        <div className="grid3">
+          {[
+            ["01","Allow Camera","Grant webcam access in one click. Everything runs locally in your browser — no video ever leaves your device.","📷"],
+            ["02","Move Your Body","MediaPipe maps your skeleton in real time. The warm-up screen confirms you're in frame before the round begins.","🧍"],
+            ["03","Play & Score","Each rep moves your character. Rack up reps, beat your high score, and bank XP toward your next level.","🎮"],
+          ].map(([n,t,d,e]) => (
+            <div className="card step" key={n}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div className="icon-box">{e}</div>
+                <div className="step-num">{n}</div>
+              </div>
+              <h3 className="px">{t}</h3>
+              <p>{d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* games preview */}
+      <div className="wrap section">
+        <div className="sec-head">
+          <span className="pill gold">CHOOSE YOUR GAME</span>
+          <h2 className="px">SELECT A WORKOUT</h2>
+        </div>
+        <div className="grid2">
+          {GAMES.map(g => (
+            <div className="card glow" key={g.id}>
+              <div className="hero-art" style={{aspectRatio:"16/7", display:"grid", placeItems:"center", fontSize:46}}>{g.emoji}</div>
+              <h3 className="px" style={{fontSize:14, marginTop:18}}>{g.name}</h3>
+              <div className="px" style={{fontSize:8, color:"var(--gold)", margin:"8px 0 12px"}}>{g.ex}</div>
+              <p className="step" style={{color:"var(--ink-soft)", fontSize:13}}>{g.blurb}</p>
+              <button className="btn btn-primary" style={{marginTop:16}}
+                onClick={() => { setGame(g); go("signup"); }}>PLAY →</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* footer */}
+      <div className="wrap">
+        <div className="foot">
+          <div className="brand"><div className="logo">🏃</div><div className="name px">MOVEVERSE</div></div>
+          <span style={{color:"var(--ink-faint)", fontSize:12}}>Built with pose detection. No video stored.</span>
+          <div className="links"><a>Privacy</a><a>Terms</a><a>Contact</a></div>
+        </div>
+      </div>
+      <div className="clouds" />
+    </>
+  );
+}
+
+/* small animated hero figure with motion lines */
+function PlayerWithMotion() {
+  return (
+    <svg viewBox="0 0 300 250" width="100%" height="100%" style={{display:"block"}}>
+      <defs>
+        <linearGradient id="ml" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--cyan)"/><stop offset="1" stopColor="var(--violet)"/>
+        </linearGradient>
+      </defs>
+      {/* motion arcs */}
+      {[0,1,2].map(i => (
+        <path key={i} d={`M60 ${120-i*22} Q150 ${40-i*22} 240 ${120-i*22}`} fill="none"
+          stroke="url(#ml)" strokeWidth="2" strokeDasharray="6 8" opacity={0.7-i*0.18}>
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.2s" repeatCount="indefinite"/>
+        </path>
+      ))}
+      {/* skeleton figure */}
+      <g stroke="var(--cyan)" strokeWidth="3" fill="none" strokeLinecap="round">
+        <circle cx="150" cy="95" r="16" fill="var(--violet)" stroke="var(--cyan)"/>
+        <line x1="150" y1="111" x2="150" y2="165"/>
+        <line x1="150" y1="125" x2="112" y2="150"/>
+        <line x1="150" y1="125" x2="188" y2="150"/>
+        <line x1="150" y1="165" x2="124" y2="215"/>
+        <line x1="150" y1="165" x2="176" y2="215"/>
+      </g>
+      {[[150,95],[150,125],[112,150],[188,150],[150,165],[124,215],[176,215]].map(([x,y],i)=>(
+        <circle key={i} cx={x} cy={y} r="4" fill="var(--gold)"/>
+      ))}
+    </svg>
+  );
+}
+
+/* =================== REGISTRATION (Feature 1) =================== */
+function Signup({ go }) {
+  const [f, setF] = useState({ email:"", username:"", password:"" });
+  const [err, setErr] = useState({});
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const submit = () => {
+    const er = {};
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) er.email = "Enter a valid email address.";
+    if (f.username.trim().length < 3) er.username = "Username must be 3+ characters.";
+    if (f.password.length < 6) er.password = "Password must be 6+ characters.";
+    setErr(er);
+    if (Object.keys(er).length === 0) go("warmup");
+  };
+
+  return (
+    <div className="wrap auth">
+      <div className="sec-head" style={{marginBottom:24}}>
+        <span className="pill">CREATE ACCOUNT</span>
+        <h2 className="px" style={{fontSize:20}}>JOIN MOVEVERSE</h2>
+        <p>Save your progress, streak and XP across visits.</p>
+      </div>
+      <div className="card">
+        <div className="field">
+          <label>EMAIL ADDRESS</label>
+          <input type="email" placeholder="you@example.com" value={f.email} onChange={set("email")} />
+          {err.email && <div className="err">{err.email}</div>}
+        </div>
+        <div className="field">
+          <label>USERNAME</label>
+          <input type="text" placeholder="pixel_athlete" value={f.username} onChange={set("username")} />
+          {err.username && <div className="err">{err.username}</div>}
+        </div>
+        <div className="field">
+          <label>PASSWORD</label>
+          <input type="password" placeholder="••••••••" value={f.password} onChange={set("password")} />
+          {err.password ? <div className="err">{err.password}</div>
+            : <div className="hint">At least 6 characters.</div>}
+        </div>
+        <button className="btn btn-primary" style={{width:"100%", marginTop:8}} onClick={submit}>
+          CREATE ACCOUNT →
+        </button>
+        <p className="hint" style={{textAlign:"center", marginTop:14}}>
+          Already have an account? <a style={{color:"var(--cyan)", cursor:"pointer"}} onClick={() => go("warmup")}>Log in</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* =================== CAMERA WARM-UP (Feature 2) =================== */
+function Warmup({ go, game }) {
+  const [allowed, setAllowed] = useState(false);
+  const [checks, setChecks] = useState({ cam:false, light:false, frame:false });
+  const allDone = checks.cam && checks.light && checks.frame;
+
+  // simulate the warm-up sequence after camera is "allowed"
+  useEffect(() => {
+    if (!allowed) return;
+    const t1 = setTimeout(() => setChecks(c => ({ ...c, cam:true })), 500);
+    const t2 = setTimeout(() => setChecks(c => ({ ...c, light:true })), 1400);
+    const t3 = setTimeout(() => setChecks(c => ({ ...c, frame:true })), 2400);
+    return () => [t1,t2,t3].forEach(clearTimeout);
+  }, [allowed]);
+
+  return (
+    <div className="wrap section">
+      <div className="sec-head" style={{marginBottom:22}}>
+        <span className="pill gold">CAMERA SETUP</span>
+        <h2 className="px" style={{fontSize:20}}>WARM-UP — {game.name}</h2>
+        <p>We check your pose tracking before the round begins.</p>
+      </div>
+
+      <div className="cam-grid">
+        {/* live feed */}
+        <div className="cam-feed">
+          <div className="scan" />
+          {!allowed ? (
+            <div style={{textAlign:"center", padding:20}}>
+              <div className="icon-box" style={{margin:"0 auto 16px", width:70, height:70, fontSize:30, borderRadius:"50%"}}>📷</div>
+              <h3 className="px" style={{fontSize:12}}>ENABLE YOUR CAMERA</h3>
+              <p style={{color:"var(--ink-soft)", margin:"10px 0 18px"}}>See your pose tracked live with a glowing skeleton overlay.</p>
+              <button className="btn btn-violet" onClick={() => setAllowed(true)}>ALLOW CAMERA</button>
+            </div>
+          ) : (
+            <SkeletonOverlay active={allDone} />
+          )}
+          <div className="cam-foot">
+            <span><i className={`dot ${allowed?"on":"off"}`} />{allowed ? "CAMERA ON" : "CAMERA OFF"}</span>
+            <span>{allDone ? "POSE DETECTED ✓" : "Stand back so your whole body fits"}</span>
+          </div>
+        </div>
+
+        {/* checklist */}
+        <div>
+          <div className="card">
+            <h3 className="px" style={{fontSize:11, marginBottom:16}}>SETUP CHECKLIST</h3>
+            {[["cam","CAMERA DETECTED"],["light","GOOD LIGHTING"],["frame","BODY IN FRAME"]].map(([k,l]) => (
+              <div className="check-row" key={k}>
+                <div className={`check-box ${checks[k]?"done":""}`}>{checks[k] ? "✓" : ""}</div>
+                <span className="lbl">{l}</span>
+              </div>
+            ))}
+            <p className="px" style={{fontSize:8, color: allDone?"var(--green)":"var(--ink-faint)", textAlign:"center", margin:"14px 0"}}>
+              {allowed ? (allDone ? "READY!" : "PREPARING DETECTION…") : "WAITING…"}
+            </p>
+            <button className="btn btn-primary" style={{width:"100%"}} disabled={!allDone}
+              onClick={() => allDone && go("game")}
+              title={allDone ? "" : "Complete the checklist first"}>
+              START GAME →
+            </button>
+          </div>
+          <p className="hint" style={{textAlign:"center", marginTop:14}}>
+            Prototype note: camera & pose detection are simulated here. The real
+            build uses MediaPipe Pose with a live webcam feed.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonOverlay({ active }) {
+  return (
+    <svg viewBox="0 0 300 200" width="80%" height="80%">
+      <g stroke={active ? "var(--green)" : "var(--cyan)"} strokeWidth="3" fill="none" strokeLinecap="round"
+         style={{ filter: active ? "drop-shadow(0 0 6px var(--green))" : "none" }}>
+        <circle cx="150" cy="48" r="14" />
+        <line x1="150" y1="62" x2="150" y2="118" />
+        <line x1="150" y1="74" x2="116" y2="100" />
+        <line x1="150" y1="74" x2="184" y2="100" />
+        <line x1="150" y1="118" x2="126" y2="168" />
+        <line x1="150" y1="118" x2="174" y2="168" />
+      </g>
+      {[[150,48],[150,74],[116,100],[184,100],[150,118],[126,168],[174,168]].map(([x,y],i)=>(
+        <circle key={i} cx={x} cy={y} r="4" fill="var(--gold)">
+          {active && <animate attributeName="r" values="4;6;4" dur="1s" repeatCount="indefinite" />}
+        </circle>
+      ))}
+    </svg>
+  );
+}
+
+/* =================== GAMEPLAY (Feature 3) =================== */
+function GamePicker({ go, game, setGame }) {
+  const [difficulty, setDifficulty] = useState(null);   // null until chosen
+  const targets = { Easy:5, Medium:10, Hard:20 };
+
+  if (!difficulty) {
+    return (
+      <div className="wrap section">
+        <div style={{display:"flex", justifyContent:"space-between", marginBottom:10}}>
+          <button className="btn btn-ghost" onClick={() => go("home")}>← BACK</button>
+          <span className="pill gold">{game.name}</span>
+        </div>
+        <div className="sec-head">
+          <h2 className="px" style={{fontSize:22}}>SELECT DIFFICULTY</h2>
+          <p>How many {game.ex.toLowerCase()} can you do?</p>
+        </div>
+        <div className="grid3">
+          {[["EASY",5,"var(--green)","Perfect for beginners"],
+            ["MEDIUM",10,"var(--gold)","A solid workout"],
+            ["HARD",20,"var(--pink)","For the dedicated"]].map(([n,reps,c,sub]) => (
+            <div className="card" key={n} style={{textAlign:"center", borderColor:c, cursor:"pointer"}}
+                 onClick={() => setDifficulty({ name:n, reps })}>
+              <div className="px" style={{color:c, fontSize:14}}>{n}</div>
+              <div className="px" style={{fontSize:34, margin:"16px 0 6px"}}>{reps}</div>
+              <div className="px" style={{fontSize:8, color:"var(--ink-faint)"}}>{game.ex}</div>
+              <p style={{color:"var(--ink-soft)", marginTop:12, fontSize:12}}>{sub}</p>
+            </div>
+          ))}
+        </div>
+        {/* let users swap game here too */}
+        <div className="sec-head" style={{marginTop:30}}>
+          <p style={{color:"var(--ink-faint)"}}>Wrong game? Switch:</p>
+          <div style={{display:"flex", gap:10, justifyContent:"center", marginTop:10}}>
+            {GAMES.map(g => (
+              <button key={g.id} className={`btn ${g.id===game.id?"btn-primary":"btn-ghost"}`}
+                onClick={() => setGame(g)}>{g.emoji} {g.name}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <Play go={go} game={game} difficulty={difficulty} reset={() => setDifficulty(null)} />;
+}
+
+function Play({ go, game, difficulty, reset }) {
+  const [reps, setReps] = useState(0);
+  const target = difficulty.reps;
+  const done = reps >= target;
+  const score = Math.round((reps / target) * 100);
+
+  const doRep = () => { if (!done) setReps(r => r + 1); };
+
+  return (
+    <div className="wrap section">
+      <div style={{display:"flex", justifyContent:"space-between", marginBottom:16}}>
+        <button className="btn btn-ghost" onClick={reset}>← CHANGE</button>
+        <span className="pill gold">{game.name} · {difficulty.name}</span>
+      </div>
+
+      <div className="hud">
+        <div className="card box"><b>{reps}/{target}</b><span>{game.ex}</span></div>
+        <div className="card box"><b>{score}</b><span>SCORE</span></div>
+        <div className="card box"><b>{reps*15}</b><span>XP EARNED</span></div>
+      </div>
+
+      <div className="game-stage">
+        {/* rungs/pads */}
+        {[20,38,56,74,88].map((p,i) => <div key={i} className="rung" style={{bottom:`${p}%`}} />)}
+        {/* player climbs as reps grow */}
+        <div className="player" style={{ bottom: `${10 + (reps/target)*78}%` }}>{game.emoji}</div>
+
+        {done && (
+          <div style={{position:"absolute", inset:0, display:"grid", placeItems:"center",
+                       background:"color-mix(in srgb,var(--bg) 70%,transparent)"}}>
+            <div style={{textAlign:"center"}}>
+              <div className="px" style={{fontSize:22, color:"var(--gold)"}}>🎉 ROUND COMPLETE!</div>
+              <p style={{margin:"14px 0", color:"var(--ink-soft)"}}>You scored {score} and earned {reps*15} XP.</p>
+              <button className="btn btn-primary" onClick={() => go("dashboard")}>VIEW DASHBOARD →</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{textAlign:"center", marginTop:20}}>
+        <p className="hint" style={{marginBottom:12}}>
+          In the real build, MediaPipe Pose counts each {game.ex.toLowerCase().replace(/s$/,"")} automatically.
+          Tap below to simulate a detected rep.
+        </p>
+        <button className="btn btn-violet" onClick={doRep} disabled={done}>
+          {done ? "DONE ✓" : `DETECT ${game.ex.replace(/S$/,"")} (+1)`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =================== DASHBOARD (Feature 4) =================== */
+function Dashboard({ go }) {
+  const level = 12, xp = 12450, xpForNext = 14000;
+  const max = Math.max(...WEEK.map(w => w.v)) || 1;
+
+  return (
+    <div className="wrap section">
+      <div style={{display:"flex", justifyContent:"space-between", marginBottom:18}}>
+        <button className="btn btn-ghost" onClick={() => go("home")}>← BACK</button>
+        <span className="pill gold">DASHBOARD</span>
+        <button className="btn btn-primary" onClick={() => go("game")}>PLAY →</button>
+      </div>
+
+      {/* top stats */}
+      <div className="stat-cards">
+        <div className="card"><span className="em">🔥</span><div><b>7</b><small>DAY STREAK</small></div></div>
+        <div className="card"><span className="em">⚡</span><div><b>{xp.toLocaleString()}</b><small>TOTAL XP</small></div></div>
+        <div className="card"><span className="em">🏅</span><div><b>{EARNED.length}</b><small>BADGES</small></div></div>
+        <div className="card"><span className="em">🎮</span><div><b>{SESSIONS.length}</b><small>SESSIONS</small></div></div>
+      </div>
+
+      {/* level progress */}
+      <div className="card" style={{marginBottom:22}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+          <h3 className="px" style={{fontSize:11}}>LEVEL {level}</h3>
+          <span className="hint">{xp.toLocaleString()} / {xpForNext.toLocaleString()} XP</span>
+        </div>
+        <div className="lvl-bar"><div style={{width:`${(xp/xpForNext)*100}%`}} /></div>
+      </div>
+
+      {/* weekly reps chart */}
+      <div className="card" style={{marginBottom:22}}>
+        <h3 className="px" style={{fontSize:11, marginBottom:18}}>WEEKLY REPS</h3>
+        <div className="bars">
+          {WEEK.map(w => (
+            <div className="bar-col" key={w.d}>
+              <em>{w.v}</em>
+              <div className="bar" style={{height:`${(w.v/max)*100}%`}} />
+              <span>{w.d}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* session history */}
+      <div className="card" style={{marginBottom:22}}>
+        <h3 className="px" style={{fontSize:11, marginBottom:8}}>RECENT SESSIONS</h3>
+        {SESSIONS.map((s,i) => (
+          <div className="sess" key={i}>
+            <span className="when">{s.date}</span>
+            <span className="what">{s.game}</span>
+            <span className="px" style={{fontSize:11, color:"var(--cyan)"}}>{s.score} pts</span>
+          </div>
+        ))}
+      </div>
+
+      {/* badges */}
+      <div className="card glow" style={{marginBottom:18}}>
+        <h3 className="px" style={{fontSize:11, marginBottom:16, color:"var(--gold)"}}>EARNED BADGES</h3>
+        <div className="badge-grid">
+          {EARNED.map(([e,n]) => (
+            <div className="badge" key={n}><div className="em">{e}</div><div className="nm">{n}</div></div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <h3 className="px" style={{fontSize:11, marginBottom:16, color:"var(--violet)"}}>LOCKED BADGES</h3>
+        <div className="badge-grid">
+          {LOCKED.map(([e,n]) => (
+            <div className="badge locked" key={n}><div className="em">{e}</div><div className="nm">{n}</div></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
