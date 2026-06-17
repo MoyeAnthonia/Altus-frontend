@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+:root {
+  --primary-color: #3b82f6;
+  --main-border-radius: 8px;
+  --cyan: #38e1ff;
+  --violet: #9b6dff;
+  --font-family: "Chakra Petch", sans-serif;
+  --display: "Chakra Petch", sans-serif;
+  --body: "Sora", sans-serif;
+  --mono: "Chakra Petch", monospace;
+  --bg-main-color: rgb(27, 34, 60);
+  --easy-color: rgb(14, 165, 80);
+  --medium-color: rgb(239, 139, 17);
+  --hard-color: rgb(216, 25, 46);
+}
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-main-color);
+  color: #fff;
+}
+
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+}

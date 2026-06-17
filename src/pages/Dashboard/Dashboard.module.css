@@ -1,0 +1,334 @@
+/* ── LOCAL TOKENS ── */
+.dbPage {
+  --bg-card: rgb(10, 14, 35);
+  --bg-section: rgb(12, 18, 42);
+  --border-amber: rgba(245, 158, 11, 0.7);
+  --border-blue: rgba(56, 225, 255, 0.35);
+  --border-violet: rgba(155, 109, 255, 0.5);
+  --amber: #f59e0b;
+  --pixel: "Press Start 2P", monospace;
+  --mono: "JetBrains Mono", monospace;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ── NAV ── */
+.dbNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+}
+
+.dbNavBtn {
+  font-family: var(--pixel);
+  font-size: clamp(0.38rem, 1vw, 0.5rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 12px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.dbNavBtn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.dbNavBtnAmber {
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+.dbNavBtnAmber:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.dbPageTitle {
+  font-family: var(--pixel);
+  font-size: clamp(0.65rem, 2vw, 1rem);
+  color: var(--amber);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.5);
+}
+
+/* ── STAT CARDS ROW ── */
+.dbStatsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 0 40px 28px;
+}
+
+.dbStatCard {
+  background: var(--bg-card);
+  border-radius: 14px;
+  border: 2px solid var(--border-amber);
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.12);
+}
+
+.dbStatCardBlue {
+  border-color: var(--border-blue);
+  box-shadow: 0 0 18px rgba(56, 225, 255, 0.1);
+}
+
+.dbStatIcon {
+  font-size: 2.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dbStatBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dbStatValue {
+  font-family: var(--mono);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.dbStatValueBlue {
+  color: var(--cyan);
+}
+
+.dbStatLabel {
+  font-family: var(--pixel);
+  font-size: clamp(0.34rem, 0.8vw, 0.44rem);
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+/* ── WEEKLY REPS SECTION ── */
+.dbWeeklySection {
+  margin: 0 40px 24px;
+  background: var(--bg-section);
+  border: 1.5px solid var(--border-blue);
+  border-radius: 14px;
+  padding: 28px 28px 20px;
+}
+
+.dbSectionTitle {
+  font-family: var(--pixel);
+  font-size: clamp(0.42rem, 1.1vw, 0.58rem);
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  margin-bottom: 28px;
+}
+
+.dbSectionTitleAmber {
+  color: var(--amber);
+}
+.dbSectionTitleViolet {
+  color: var(--violet);
+}
+
+/* bar chart */
+.dbBarChart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  align-items: end;
+  min-height: 120px;
+  margin-bottom: 16px;
+}
+
+.dbBarCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dbBarWrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+}
+
+.dbBar {
+  border-radius: 6px 6px 0 0;
+  min-height: 4px;
+  transition: height 0.4s ease;
+}
+
+.dbBarPushup {
+  background: var(--primary-color);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.dbBarSquat {
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(56, 225, 255, 0.45);
+}
+
+.dbBarCount {
+  font-family: var(--mono);
+  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+  font-weight: 700;
+  color: #fff;
+}
+
+.dbBarDay {
+  font-family: var(--pixel);
+  font-size: clamp(0.3rem, 0.7vw, 0.4rem);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+}
+
+/* legend */
+.dbLegend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.dbLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--pixel);
+  font-size: clamp(0.32rem, 0.75vw, 0.42rem);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dbLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dbLegendDotBlue {
+  background: var(--primary-color);
+}
+.dbLegendDotCyan {
+  background: var(--cyan);
+}
+
+/* ── BADGES SECTIONS ── */
+.dbBadgesSection {
+  margin: 0 40px 24px;
+  background: var(--bg-section);
+  border: 2px solid var(--border-amber);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.1);
+}
+
+.dbBadgesSectionLocked {
+  border-color: var(--border-violet);
+  box-shadow: 0 0 16px rgba(155, 109, 255, 0.08);
+}
+
+.dbBadgesGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.dbBadgesGridLocked {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dbBadgeCard {
+  background: rgba(30, 24, 70, 0.85);
+  border: 1.5px solid rgba(155, 109, 255, 0.3);
+  border-radius: 12px;
+  padding: 24px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+
+.dbBadgeCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(155, 109, 255, 0.2);
+}
+
+.dbBadgeCardLocked {
+  background: rgba(20, 20, 45, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+  opacity: 0.55;
+}
+
+.dbBadgeIcon {
+  font-size: 2.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+.dbBadgeName {
+  font-family: var(--pixel);
+  font-size: clamp(0.3rem, 0.7vw, 0.38rem);
+  letter-spacing: 0.12em;
+  color: #fff;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.dbBadgeNameLocked {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .dbNav {
+    padding: 16px 20px;
+  }
+  .dbStatsRow {
+    grid-template-columns: 1fr;
+    padding: 0 20px 20px;
+  }
+  .dbWeeklySection,
+  .dbBadgesSection {
+    margin: 0 20px 20px;
+    padding: 20px;
+  }
+  .dbBadgesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .dbBadgesGridLocked {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .dbBarChart {
+    gap: 6px;
+  }
+  .dbBadgesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dbBadgesGridLocked {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
