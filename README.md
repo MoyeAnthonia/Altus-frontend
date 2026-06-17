@@ -5,6 +5,7 @@ A gamified fitness application that tracks user's motion using Mediapipe.
 ## Git pre-commit hook
 
 A pre-commit hook is a script, Git runs automatically every time you git commit. If the script exits with an error, the commit is blocked.
+Run `npx lint-staged` on terminal before commit to check for errors.
 This project uses Husky a Javascript Library that functions as Git hooks automation tool
 
 ## Setup (new team members)
