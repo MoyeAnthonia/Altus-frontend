@@ -176,6 +176,7 @@
 
 .lgLabel {
   font-family: var(--pixel);
+  margin-top: 1rem;
   font-size: clamp(0.3rem, 0.75vw, 0.38rem);
   letter-spacing: 0.14em;
   color: rgba(255, 255, 255, 0.55);
@@ -248,6 +249,14 @@
   opacity: 0.7;
 }
 
+/* root-level form error, e.g. "Invalid credentials" from the backend */
+.lgError {
+  font-family: var(--body, "Sora", sans-serif);
+  font-size: 0.8rem;
+  color: #f87171;
+  margin-top: -8px;
+}
+
 /* ── SUBMIT BUTTON ── */
 .lgSubmitBtn {
   font-family: var(--pixel);
@@ -275,6 +284,12 @@
 }
 .lgSubmitBtn:active {
   transform: translateY(0);
+}
+
+.lgSubmitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ── DIVIDER ── */

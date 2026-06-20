@@ -1,30 +1,54 @@
 // import { useState } from "react";
 // import { useForm, type SubmitHandler } from "react-hook-form";
-// import { useAuth } from "../context/AuthContext";
+// import { useNavigate } from "react-router";
+// import { useAuth } from "../../context/useAuth";
+// import { loginUser } from "../../api/auth";
 // import styles from "./Login.module.css";
 
 // type Inputs = {
-//   username: string;
 //   email: string;
 //   password: string;
 // };
+
 // function LoginPage() {
 //   const [showPassword, setShowPassword] = useState(false);
+//   const [isLoading, setIsLoading] = useState(false);
+
+//   const { login, logout } = useAuth(); // pulls login() from AuthContext
+//   const navigate = useNavigate();
+
 //   // declare the properties in the useForm function
 //   const {
 //     register,
 //     handleSubmit,
+//     setError,
 //     formState: { errors },
 //   } = useForm<Inputs>();
 
-//   const onSubmit: SubmitHandler<Inputs> = (data) => console.log("data from the form inputs", data);
-//   // const submitForm = (data:any) =>{
-//   //   console.log('data from inputs', data)
-//   // }
+//   const onSubmit: SubmitHandler<Inputs> = async (data) => {
+//     setIsLoading(true);
+
+//     try {
+//       // call the backend /api/auth/login endpoint
+//       const result = await loginUser(data.email, data.password);
+
+//       // result looks like { token, user: { id, email, firstName, lastName } }
+//       login(result.token, result.user); // save into AuthContext + localStorage
+
+//       navigate("/"); // redirect after successful login
+//     } catch (error) {
+//       if (error instanceof Error) {
+//         // surfaces the backend's error message in the form
+//         setError("root", { message: error.message });
+//       }
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
 
 //   return (
 //     <div className={styles.lgPage}>
-//       {/* ── LEFT – branding panel ── */}
+//       {/*LEFT – branding panel */}
 //       <div className={styles.lgLeft}>
 //         {/* corner brackets (matches CameraSetup / BranchHopper) */}
 //         <div className={`${styles.lgCorner} ${styles.lgCornerTl}`}></div>
@@ -73,7 +97,7 @@
 //         </div>
 //       </div>
 
-//       {/* ── RIGHT – login form ── */}
+//       {/* RIGHT – login form*/}
 //       <div className={styles.lgRight}>
 //         <div className={styles.lgCard}>
 //           <h1 className={styles.lgCardTitle}>Welcome Back</h1>
@@ -81,21 +105,8 @@
 
 //           {/* react hook form */}
 //           <div className={styles.lgForm}>
+//             {/* login form */}
 //             <form onSubmit={handleSubmit(onSubmit)}>
-//               {/* user name */}
-//               <div className={styles.lgField}>
-//                 <label className={styles.lgLabel} htmlFor="lastName">
-//                   Last name
-//                 </label>
-//                 <input
-//                   {...register("username", { required: true })}
-//                   id="username"
-//                   type="text"
-//                   className={styles.lgInput}
-//                   placeholder="user name"
-//                 />
-//                 {errors.username && <span>This user name field is required</span>}
-//               </div>
 //               {/* email */}
 //               <div className={styles.lgField}>
 //                 <label className={styles.lgLabel} htmlFor="email">
@@ -134,18 +145,24 @@
 //                   >
 //                     {showPassword ? "🙈" : "👁️"}
 //                   </button>
-//                   <input type="submit" className={styles.lgSubmitBtn} />
 //                 </div>
 //               </div>
+
+//               {/* root-level error from the backend (e.g. "Invalid credentials") */}
+//               {errors.root && <span className={styles.lgError}>{errors.root.message}</span>}
+
 //               {/* submit button */}
+//               <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
+//                 {isLoading ? "Signing in..." : "Play Now →"}
+//               </button>
+
 //               <button type="button" className={styles.lgForgot}>
 //                 Forgot password?
 //               </button>
-
-//               {/* <button type="button" className={styles.lgSubmitBtn}>
-//                 Play Now →
-//               </button> */}
 //             </form>
+
+//             {/* Register form */}
+
 //           </div>
 
 //           <p className={styles.lgSignupPrompt}>
@@ -165,45 +182,75 @@
 import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../context/AuthContext";
-import { loginUser } from "../../api/auth";
+import { useAuth } from "../../context/useAuth";
+import { loginUser, registerUser } from "../../api/auth";
 import styles from "./Login.module.css";
 
-type Inputs = {
+type LoginInputs = {
+  email: string;
+  password: string;
+};
+
+type RegisterInputs = {
+  username: string;
   email: string;
   password: string;
 };
 
 function LoginPage() {
+  // controls which form is showing inside the card
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth(); // pulls login() from AuthContext
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  // declare the properties in the useForm function
+  // ── LOGIN FORM ──
+  // its own useForm instance, scoped just to email + password
   const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors },
-  } = useForm<Inputs>();
+    register: registerLoginField,
+    handleSubmit: handleLoginSubmit,
+    setError: setLoginError,
+    formState: { errors: loginErrors },
+  } = useForm<LoginInputs>();
 
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const onLoginSubmit: SubmitHandler<LoginInputs> = async (data) => {
     setIsLoading(true);
 
     try {
-      // call the backend /api/auth/login endpoint
       const result = await loginUser(data.email, data.password);
-
-      // result looks like { token, user: { id, email, firstName, lastName } }
-      login(result.token, result.user); // save into AuthContext + localStorage
-
-      navigate("/"); // redirect after successful login
+      login(result.token, result.user);
+      navigate("/");
     } catch (error) {
       if (error instanceof Error) {
-        // surfaces the backend's error message in the form
-        setError("root", { message: error.message });
+        setLoginError("root", { message: error.message });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── REGISTER FORM ──
+  // a second, separate useForm instance for username + email + password
+  const {
+    register: registerRegisterField,
+    handleSubmit: handleRegisterSubmit,
+    setError: setRegisterError,
+    formState: { errors: registerErrors },
+  } = useForm<RegisterInputs>();
+
+  const onRegisterSubmit: SubmitHandler<RegisterInputs> = async (data) => {
+    setIsLoading(true);
+
+    try {
+      const result = await registerUser(data.username, data.email, data.password);
+      // straight into the app after registering, same as a normal login
+      login(result.token, result.user);
+      navigate("/");
+    } catch (error) {
+      if (error instanceof Error) {
+        setRegisterError("root", { message: error.message });
       }
     } finally {
       setIsLoading(false);
@@ -212,16 +259,14 @@ function LoginPage() {
 
   return (
     <div className={styles.lgPage}>
-      {/* ── LEFT – branding panel ── */}
+      {/* LEFT – branding panel (unchanged) */}
       <div className={styles.lgLeft}>
-        {/* corner brackets (matches CameraSetup / BranchHopper) */}
         <div className={`${styles.lgCorner} ${styles.lgCornerTl}`}></div>
         <div className={`${styles.lgCorner} ${styles.lgCornerTr}`}></div>
         <div className={`${styles.lgCorner} ${styles.lgCornerBl}`}></div>
         <div className={`${styles.lgCorner} ${styles.lgCornerBr}`}></div>
 
         <div className={styles.lgBrand}>
-          {/* logo – stick figure SVG matching game pages */}
           <svg
             className={styles.lgLogoMark}
             viewBox="0 0 80 80"
@@ -261,76 +306,167 @@ function LoginPage() {
         </div>
       </div>
 
-      {/* ── RIGHT – login form ── */}
+      {/* RIGHT – form panel, swaps between login + register */}
       <div className={styles.lgRight}>
         <div className={styles.lgCard}>
-          <h1 className={styles.lgCardTitle}>Welcome Back</h1>
-          <p className={styles.lgCardSubtitle}>Sign in to continue your streak</p>
+          {mode === "login" ? (
+            <>
+              <h1 className={styles.lgCardTitle}>Welcome Back</h1>
+              <p className={styles.lgCardSubtitle}>Sign in to continue your streak</p>
 
-          {/* react hook form */}
-          <div className={styles.lgForm}>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              {/* email */}
-              <div className={styles.lgField}>
-                <label className={styles.lgLabel} htmlFor="email">
-                  Email
-                </label>
-                <input
-                  {...register("email", { required: true })}
-                  id="email"
-                  type="email"
-                  className={styles.lgInput}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                />
-                {errors.email && <span>This email field is required</span>}
-              </div>
-              {/* password */}
-              <div className={styles.lgField}>
-                <label className={styles.lgLabel} htmlFor="password">
-                  Password
-                </label>
-                <div className={styles.lgInputWrap}>
-                  <input
-                    {...register("password", { required: true })}
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className={styles.lgInput}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                  {errors.password && <span>This password field is required</span>}
-                  <button
-                    type="button"
-                    className={styles.lgToggleBtn}
-                    onClick={() => setShowPassword((p) => !p)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? "🙈" : "👁️"}
+              <div className={styles.lgForm}>
+                <form onSubmit={handleLoginSubmit(onLoginSubmit)}>
+                  <div className={styles.lgField}>
+                    <label className={styles.lgLabel} htmlFor="email">
+                      Email
+                    </label>
+                    <input
+                      {...registerLoginField("email", { required: true })}
+                      id="email"
+                      type="email"
+                      className={styles.lgInput}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                    {loginErrors.email && <span>This email field is required</span>}
+                  </div>
+
+                  <div className={styles.lgField}>
+                    <label className={styles.lgLabel} htmlFor="password">
+                      Password
+                    </label>
+                    <div className={styles.lgInputWrap}>
+                      <input
+                        {...registerLoginField("password", { required: true })}
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        className={styles.lgInput}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                      />
+                      {loginErrors.password && <span>This password field is required</span>}
+                      <button
+                        type="button"
+                        className={styles.lgToggleBtn}
+                        onClick={() => setShowPassword((p) => !p)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? "🙈" : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {loginErrors.root && (
+                    <span className={styles.lgError}>{loginErrors.root.message}</span>
+                  )}
+
+                  <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Play Now →"}
                   </button>
-                </div>
+
+                  {/* <button type="button" className={styles.lgForgot}>
+                    Forgot password?
+                  </button> */}
+                </form>
               </div>
 
-              {/* root-level error from the backend (e.g. "Invalid credentials") */}
-              {errors.root && <span className={styles.lgError}>{errors.root.message}</span>}
+              <p className={styles.lgSignupPrompt}>
+                No account yet?
+                <button
+                  type="button"
+                  className={styles.lgSignupLink}
+                  onClick={() => setMode("register")}
+                >
+                  Sign up free
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className={styles.lgCardTitle}>Create Account</h1>
+              <p className={styles.lgCardSubtitle}>Start your streak today</p>
 
-              {/* submit button */}
-              <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Play Now →"}
-              </button>
+              <div className={styles.lgForm}>
+                <form onSubmit={handleRegisterSubmit(onRegisterSubmit)}>
+                  <div className={styles.lgField}>
+                    <label className={styles.lgLabel} htmlFor="username">
+                      Username
+                    </label>
+                    <input
+                      {...registerRegisterField("username", { required: true })}
+                      id="username"
+                      type="text"
+                      className={styles.lgInput}
+                      placeholder="your username"
+                      autoComplete="username"
+                    />
+                    {registerErrors.username && <span>This username field is required</span>}
+                  </div>
 
-              <button type="button" className={styles.lgForgot}>
-                Forgot password?
-              </button>
-            </form>
-          </div>
+                  <div className={styles.lgField}>
+                    <label className={styles.lgLabel} htmlFor="registerEmail">
+                      Email
+                    </label>
+                    <input
+                      {...registerRegisterField("email", { required: true })}
+                      id="registerEmail"
+                      type="email"
+                      className={styles.lgInput}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                    {registerErrors.email && <span>This email field is required</span>}
+                  </div>
 
-          <p className={styles.lgSignupPrompt}>
-            No account yet?
-            <button type="button" className={styles.lgSignupLink}>
-              Sign up free
-            </button>
-          </p>
+                  <div className={styles.lgField}>
+                    <label className={styles.lgLabel} htmlFor="registerPassword">
+                      Password
+                    </label>
+                    <div className={styles.lgInputWrap}>
+                      <input
+                        {...registerRegisterField("password", { required: true, minLength: 6 })}
+                        id="registerPassword"
+                        type={showPassword ? "text" : "password"}
+                        className={styles.lgInput}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                      />
+                      {registerErrors.password && (
+                        <span>Password must be at least 6 characters</span>
+                      )}
+                      <button
+                        type="button"
+                        className={styles.lgToggleBtn}
+                        onClick={() => setShowPassword((p) => !p)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? "🙈" : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {registerErrors.root && (
+                    <span className={styles.lgError}>{registerErrors.root.message}</span>
+                  )}
+
+                  <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create Account →"}
+                  </button>
+                </form>
+              </div>
+
+              <p className={styles.lgSignupPrompt}>
+                Already have an account?
+                <button
+                  type="button"
+                  className={styles.lgSignupLink}
+                  onClick={() => setMode("login")}
+                >
+                  Sign in
+                </button>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
