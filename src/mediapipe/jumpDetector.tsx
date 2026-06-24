@@ -6,6 +6,7 @@
  */
 
 import type { Landmark } from "./mediapipePlayer";
+import type { Pose, Results } from '@mediapipe/pose';
 
 export interface MyJumpDetail {
   vel: string; // upward velocity
@@ -19,12 +20,12 @@ let prevY = 0;
 let prevTs = performance.now();
 let lastJumpAt = 0;
 
-export function initJumpDetector(pose: any) {
+export function initJumpDetector(pose: Pose) {
   pose.onResults(onJumpFrame);
   console.log("[JumpDetector] Ready to see you jumping!");
 }
 
-function onJumpFrame(results: any) {
+function onJumpFrame(results: Results) {
   if (!results.poseLandmarks) return; // in case no body is detected
 
   const lHip: Landmark = results.poseLandmarks[23];
