@@ -3,6 +3,8 @@ import styles from "./Navbar.module.css";
 import Button from "../Button/Button";
 import { useNavigate, Link } from "react-router";
 import logo from "../../assets/logo-icon.png";
+import { useAuth } from "../../context/useAuth";
+import { UserMenu } from "../UserMenu/UserMenu";
 
 type NavItems = {
   label: string;
@@ -23,7 +25,9 @@ const defaultLinks: NavItems[] = [
 
 export function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProps) {
   const nav = useNavigate();
+  const { logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
   // 👇 active section state
   const [activeSection, setActiveSection] = useState("");
@@ -103,18 +107,36 @@ export function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProp
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Button
-            onClick={navGames}
-            label="Start Playing"
-            variant="primary"
-            aria-label="Start Game"
-          />
-          <Button
-            onClick={navLogin}
-            label="Sign In"
-            variant="secondary"
-            aria-label="Sign in Account"
-          />
+          {isAuthenticated ? (
+            <>
+              <Button
+                onClick={navGames}
+                label="Start Playing"
+                variant="primary"
+                aria-label="Start Game"
+              />
+            </>
+          ) : (
+            <Button
+              onClick={navLogin}
+              label="Start Playing"
+              variant="primary"
+              aria-label="Start Game"
+            />
+          )}
+          {isAuthenticated ? (
+            <>
+              {/* <span>Hey, {user?.username} 👋</span> */}
+              <UserMenu username={user?.username ?? "Player"} onLogout={logout} />
+            </>
+          ) : (
+            <Button
+              onClick={navLogin}
+              label="Sign In"
+              variant="secondary"
+              aria-label="Sign in Account"
+            />
+          )}
         </div>
       </div>
     </nav>
