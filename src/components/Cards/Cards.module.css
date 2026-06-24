@@ -1,0 +1,363 @@
+/* Feature card  */
+.step {
+  padding: 40px 28px 44px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(0, 0, 0, 0) 45%), rgba(10, 15, 33, 0.72);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 18px 40px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.step:hover {
+  border-color: rgba(56, 225, 255, 0.35);
+  transform: translateY(-4px);
+}
+
+.stepIcon {
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 1.4rem;
+  display: grid;
+  place-items: center;
+}
+.stepIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  filter: drop-shadow(0 8px 20px rgba(56, 225, 255, 0.22));
+}
+
+.stepTitle {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1.6;
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
+.step-desc {
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 0 auto;
+  max-width: 30ch;
+}
+
+@media (max-width: 860px) {
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .hiw {
+    padding: 3.25rem 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    transition: none;
+  }
+  .step:hover {
+    transform: none;
+  }
+}
+
+/* Audience card */
+
+/* --- Accent themes -------------------------------------------------------- */
+.orange {
+  --card-accent: #f0913c;
+  --card-border: rgba(240, 145, 60, 0.45);
+  --card-tile-bg: #e07d2a;
+  --card-tile-fg: #14110a;
+  --card-glow: rgba(240, 145, 60, 0.32);
+  --card-chip-bg: rgba(240, 145, 60, 0.16);
+}
+.cyan {
+  --card-accent: #4dd0e1;
+  --card-border: rgba(77, 208, 225, 0.42);
+  --card-tile-bg: rgba(77, 208, 225, 0.14);
+  --card-tile-fg: #4dd0e1;
+  --card-glow: rgba(77, 208, 225, 0.28);
+  --card-chip-bg: rgba(77, 208, 225, 0.14);
+}
+.blue {
+  --card-accent: #5b8def;
+  --card-border: rgba(91, 141, 239, 0.42);
+  --card-tile-bg: rgba(91, 141, 239, 0.14);
+  --card-tile-fg: #9bb8ff;
+  --card-glow: rgba(91, 141, 239, 0.28);
+  --card-chip-bg: rgba(91, 141, 239, 0.14);
+}
+
+/* --- Card shell ----------------------------------------------------------- */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.1rem, 2vw, 1.5rem);
+  border-radius: 16px;
+  background: var(--color-surface, rgba(18, 24, 52, 0.55));
+  border: 1px solid var(--card-border);
+  cursor: pointer;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: var(--card-accent);
+  box-shadow:
+    0 0 0 1px var(--card-accent),
+    0 14px 40px -12px var(--card-glow);
+  transform: translateY(-2px);
+}
+
+/* --- Header (always visible) --------------------------------------------- */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.iconTile {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--card-tile-bg);
+  color: var(--card-tile-fg);
+}
+.iconTile svg {
+  width: 26px;
+  height: 26px;
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-pixel, "Press Start 2P", monospace);
+  font-size: clamp(0.62rem, 1.1vw, 0.76rem);
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text, #e7ebff);
+}
+
+.chevron {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--card-chip-bg);
+  color: var(--card-accent);
+  transition: transform 0.35s ease;
+}
+.chevron svg {
+  width: 16px;
+  height: 16px;
+}
+.card:hover .chevron,
+.card:focus-within .chevron {
+  transform: rotate(180deg);
+}
+
+/* --- Reveal region (the "dropdown") -------------------------------------- */
+.bodyWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s ease;
+}
+.card:hover .bodyWrap,
+.card:focus-within .bodyWrap {
+  grid-template-rows: 1fr;
+}
+
+/* min-height:0 lets the grid row actually collapse to 0; overflow clips the
+   content while it's hidden. */
+.bodyInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.description {
+  margin: 1rem 0 0;
+  font-family: var(--font-body, "Exo 2", system-ui, sans-serif);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--color-text-muted, #a6aedc);
+}
+
+.cta {
+  margin-top: 1.25rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--card-chip-bg);
+  color: var(--card-accent);
+  font-family: var(--font-pixel, "Press Start 2P", monospace);
+  font-size: 0.58rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    transform 0.12s ease;
+}
+.cta:hover {
+  background: var(--card-tile-bg);
+}
+.cta:active {
+  transform: scale(0.99);
+}
+
+/* --- Respect reduced-motion ---------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .bodyWrap,
+  .chevron,
+  .cta {
+    transition: none;
+  }
+}
+
+/* game card */
+.gameCard {
+  --game-accent: #f0913c; /* warm orange for the exercise label + Play button */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(0, 0, 0, 0) 45%), rgba(10, 15, 33, 0.72);
+  border: 1px solid rgba(77, 144, 246, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 18px 40px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.gameCard:hover {
+  border-color: rgba(56, 225, 255, 0.6);
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 0 1px rgba(56, 225, 255, 0.25),
+    0 22px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* The preview panel. The SVG/img fills it and carries its own background. */
+.gameMedia {
+  width: 100%;
+  aspect-ratio: 12 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.4rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+.gameMedia > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gameMedia img {
+  object-fit: cover;
+}
+
+.gameTitle {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-pixel, "Press Start 2P", monospace);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text, #f3f5ff);
+}
+
+.gameExercise {
+  margin: 0 0 1rem;
+  font-family: var(--font-pixel, "Press Start 2P", monospace);
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--game-accent);
+}
+
+.gameDesc {
+  margin: 0 0 1.6rem;
+  max-width: 34ch;
+  font-family: var(--font-body, "Exo 2", system-ui, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: var(--color-text-muted, #b9b9d6);
+}
+
+.playBtn {
+  margin-top: auto; /* pins the button to the bottom so cards line up */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--game-accent);
+  background: rgba(10, 15, 33, 0.85);
+  color: var(--game-accent);
+  font-family: var(--font-pixel, "Press Start 2P", monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(240, 145, 60, 0.4);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+.playBtn svg {
+  width: 14px;
+  height: 14px;
+}
+.playBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 26px rgba(240, 145, 60, 0.6);
+  background: rgba(240, 145, 60, 0.12);
+}
+.playBtn:active {
+  transform: translateY(0);
+}
+.playBtn:focus-visible {
+  outline: 2px solid var(--game-accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gameCard,
+  .playBtn {
+    transition: none;
+  }
+  .gameCard:hover,
+  .playBtn:hover {
+    transform: none;
+  }
+}

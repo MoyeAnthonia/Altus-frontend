@@ -1,0 +1,380 @@
+/* ── LOCAL TOKENS ── */
+.lgPage {
+  --bg-card: rgb(10, 14, 35);
+  --bg-panel: rgb(12, 18, 42);
+  --amber: #f59e0b;
+  --pixel: "Press Start 2P", monospace;
+  --mono: "JetBrains Mono", monospace;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ── LEFT PANEL – branding ── */
+.lgLeft {
+  background: rgb(8, 12, 30);
+  border-right: 1.5px solid rgba(56, 225, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ambient glow behind figure */
+.lgLeft::before {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.lgBrand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.lgLogoMark {
+  width: 80px;
+  height: 80px;
+}
+
+.lgBrandName {
+  font-family: var(--pixel);
+  font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+}
+
+.lgTagline {
+  font-family: var(--body, "Sora", sans-serif);
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+/* stat pills under tagline */
+.lgStats {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lgStatPill {
+  background: rgba(56, 225, 255, 0.07);
+  border: 1px solid rgba(56, 225, 255, 0.25);
+  border-radius: 99px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--pixel);
+  font-size: clamp(0.28rem, 0.7vw, 0.36rem);
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+}
+
+.lgStatPillIcon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+/* decorative corner brackets matching camera page */
+.lgCorner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: rgba(56, 225, 255, 0.3);
+  border-style: solid;
+}
+.lgCornerTl {
+  top: 24px;
+  left: 24px;
+  border-width: 2px 0 0 2px;
+}
+.lgCornerTr {
+  top: 24px;
+  right: 24px;
+  border-width: 2px 2px 0 0;
+}
+.lgCornerBl {
+  bottom: 24px;
+  left: 24px;
+  border-width: 0 0 2px 2px;
+}
+.lgCornerBr {
+  bottom: 24px;
+  right: 24px;
+  border-width: 0 2px 2px 0;
+}
+
+/* ── RIGHT PANEL – form ── */
+.lgRight {
+  background: var(--bg-main-color, rgb(27, 34, 60));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+}
+
+.lgCard {
+  background: var(--bg-card);
+  border: 1.5px solid rgba(56, 225, 255, 0.2);
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 0 40px rgba(56, 225, 255, 0.05);
+}
+
+.lgCardTitle {
+  font-family: var(--pixel);
+  font-size: clamp(0.55rem, 1.4vw, 0.75rem);
+  letter-spacing: 0.14em;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.lgCardSubtitle {
+  font-family: var(--body, "Sora", sans-serif);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* ── FORM ── */
+.lgForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lgField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lgLabel {
+  font-family: var(--pixel);
+  font-size: clamp(0.3rem, 0.75vw, 0.38rem);
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.lgInput {
+  background: rgb(16, 22, 50);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: #fff;
+  width: 100%;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.lgInput::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+.lgInput:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(56, 225, 255, 0.1);
+}
+
+/* password row with show/hide toggle */
+.lgInputWrap {
+  position: relative;
+}
+.lgInputWrap .lgInput {
+  padding-right: 48px;
+}
+.lgToggleBtn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.2s;
+}
+.lgToggleBtn:hover {
+  color: var(--cyan);
+}
+
+.lgForgot {
+  font-family: var(--pixel);
+  font-size: clamp(0.28rem, 0.65vw, 0.34rem);
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: right;
+  padding: 0;
+  align-self: flex-end;
+  margin-top: -8px;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.lgForgot:hover {
+  opacity: 0.7;
+}
+
+/* ── SUBMIT BUTTON ── */
+.lgSubmitBtn {
+  font-family: var(--pixel);
+  font-size: clamp(0.42rem, 1vw, 0.55rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(10, 14, 35);
+  background: var(--amber);
+  border: none;
+  border-radius: 10px;
+  padding: 18px;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  transition:
+    background 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
+}
+.lgSubmitBtn:hover {
+  background: #fbbf24;
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+.lgSubmitBtn:active {
+  transform: translateY(0);
+}
+
+/* ── DIVIDER ── */
+.lgDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+.lgDividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.lgDividerText {
+  font-family: var(--pixel);
+  font-size: clamp(0.26rem, 0.6vw, 0.32rem);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── SOCIAL BUTTON ── */
+.lgSocialBtn {
+  font-family: var(--font-family, "Chakra Petch", sans-serif);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 14px;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.lgSocialBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.lgSocialIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ── SIGN-UP PROMPT ── */
+.lgSignupPrompt {
+  margin-top: 24px;
+  text-align: center;
+  font-family: var(--body, "Sora", sans-serif);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+.lgSignupLink {
+  color: var(--cyan);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--pixel);
+  font-size: clamp(0.28rem, 0.65vw, 0.34rem);
+  letter-spacing: 0.08em;
+  margin-left: 6px;
+  transition: opacity 0.2s;
+}
+.lgSignupLink:hover {
+  opacity: 0.7;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .lgPage {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .lgLeft {
+    padding: 40px 28px;
+    border-right: none;
+    border-bottom: 1.5px solid rgba(56, 225, 255, 0.15);
+  }
+  .lgLeft::before {
+    width: 280px;
+    height: 280px;
+  }
+  .lgLogoMark {
+    width: 60px;
+    height: 60px;
+  }
+  .lgTagline {
+    display: none;
+  }
+  .lgRight {
+    padding: 40px 24px;
+  }
+  .lgCard {
+    padding: 32px 24px;
+  }
+}

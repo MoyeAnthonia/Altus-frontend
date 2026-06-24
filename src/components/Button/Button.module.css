@@ -1,0 +1,37 @@
+/* This style is Local to the component */
+/* Anystyle file nameed .module.css is not global css */
+
+.button {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  border: 1px solid var(--cyan);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+.primary {
+  background: linear-gradient(135deg, var(--cyan), #2f7bff);
+  color: #04101f;
+  box-shadow: 0 8px 22px -10px var(--cyan);
+}
+.secondary {
+  background: transparent;
+  color: var(--cyan);
+  box-shadow: 0 8px 22px -10px var(--cyan);
+}
+button:hover {
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    0 10px 26px -14px var(--cyan);
+  border: 1px solid transparent;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

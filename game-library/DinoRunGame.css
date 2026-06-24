@@ -1,0 +1,33 @@
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url(https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2) format('woff2');
+  font-display: block;
+}
+ 
+.dino-game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Press Start 2P", monospace;
+}
+ 
+.dino-game-container {
+  border: 3px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(100, 200, 255, 0.15);
+  line-height: 0;
+}
+ 
+.dino-game-container canvas {
+  display: block;
+  background: #0f172a;
+}
+ 
+.dino-game-info {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 12px;
+  letter-spacing: 1px;
+}
+ 
