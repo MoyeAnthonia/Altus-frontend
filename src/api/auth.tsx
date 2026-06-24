@@ -2,7 +2,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // register user
 async function registerUser(username: string, email: string, password: string) {
-  const response = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+  const response = await fetch(`${BASE_URL}/v1/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -21,7 +21,7 @@ async function registerUser(username: string, email: string, password: string) {
 
 // login user
 async function loginUser(email: string, password: string) {
-  const response = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+  const response = await fetch(`${BASE_URL}/v1/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,6 +31,7 @@ async function loginUser(email: string, password: string) {
   // catch error
   if (!response.ok) {
     const error = await response.json();
+    console.log("login errorr", error);
     throw new Error(error.message ?? "Login failed");
   }
   const data = await response.json();
