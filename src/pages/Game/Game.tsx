@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { DinoRunGame, type DifficultyKey, type GameEndResult } from "../../engine/dinoRunEngine";
+import { DinoRunGame, type DifficultyKey, type GameEndResult } from "../../engine/DinoRunGameEngine";
 
 interface LocationState {
   difficulty: DifficultyKey;

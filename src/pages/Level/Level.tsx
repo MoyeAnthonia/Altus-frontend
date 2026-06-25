@@ -1,11 +1,10 @@
 import styles from "./Level.module.css";
 import { useNavigate } from "react-router";
-import { type DifficultyKey } from "../../engine/dinoRunEngine";
 
 function LevelSection() {
   const nav = useNavigate();
   
-  const gameNavigate = (difficulty: DifficultyKey) => {
+  const gameNavigate = (difficulty: 'easy' | 'medium' | 'hard' | 'score_attack') => {
     nav("/game", { state: { difficulty } });
   };
 
@@ -23,9 +22,9 @@ function LevelSection() {
         <h1 className={styles.lsHeading}>Select Difficulty</h1>
         <p className={styles.lsSubtitle}>How many push-ups can you do?</p>
 
-        <div className={styles.lsCards} onClick={gameNavigate}>
+        <div className={styles.lsCards}>
           {/* EASY */}
-          <article
+          <article 
             className={`${styles.lsCard} ${styles.lsCardEasy}`}
             role="button"
             tabIndex={0}
