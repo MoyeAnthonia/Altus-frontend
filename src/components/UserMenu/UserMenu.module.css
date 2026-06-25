@@ -18,7 +18,7 @@
     background 0.2s;
 }
 .trigger:hover {
-  border-color: var(--accent-gold, #fcd34d);
+  border-color: var(--accent-gold, #ef8b11);
 }
 
 .greeting {
@@ -31,7 +31,7 @@
 
 .chevron {
   font-size: 0.7rem;
-  color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
   transition: transform 0.2s;
   display: inline-block;
 }
@@ -73,7 +73,7 @@
 }
 .dropdownItem:hover {
   background: rgba(252, 211, 77, 0.08);
-  color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
 }
 
 .dropdownItemDanger:hover {

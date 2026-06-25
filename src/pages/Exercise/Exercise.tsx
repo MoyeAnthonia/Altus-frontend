@@ -33,7 +33,7 @@ function GamePage() {
         <div className={styles.gphCamera}>
           {/* Back button */}
           <button className={styles.gphBackBtn} onClick={() => nav(-1)}>
-            Back
+            ← Back
           </button>
 
           {/* Reps badge — hangs from top-centre */}

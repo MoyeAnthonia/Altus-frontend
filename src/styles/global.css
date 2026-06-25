@@ -25,6 +25,7 @@ html {
   --easy-color: rgb(14, 165, 80);
   --medium-color: rgb(239, 139, 17);
   --hard-color: rgb(216, 25, 46);
+  --accent-gold: rgb(239, 139, 17);
 }
 body {
   margin: 0;

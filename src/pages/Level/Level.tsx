@@ -10,7 +10,7 @@ function LevelSection() {
     <>
       <nav className={styles.lsNav}>
         <button className={styles.lsBackBtn} onClick={() => nav(-1)}>
-          Back
+          ← Back
         </button>
         <span className={styles.lsGameTitle}>Branch Hopper</span>
         <div className={styles.lsNavSpacer}></div>
