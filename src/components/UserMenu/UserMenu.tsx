@@ -7,7 +7,7 @@ type UserMenuProps = {
   onLogout: () => void;
 };
 
-export function UserMenu({ username, onLogout }: UserMenuProps) {
+function UserMenu({ username, onLogout }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();

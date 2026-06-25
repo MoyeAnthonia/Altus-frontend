@@ -1,0 +1,248 @@
+.ftRoot {
+  background: var(--bg-main-color, rgb(20, 25, 45));
+  border-top: 1px solid var(--border-color, #2a2a4a);
+  color: #c7cce0;
+  padding: 56px 32px 24px;
+  font-family: "Sora", sans-serif;
+}
+
+/* ---- Top: brand + 3 link columns ---- */
+.ftTop {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 40px;
+}
+
+.ftBrandCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ftBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.ftLogo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.ftBrandName {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-gold);
+}
+
+.ftTagline {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #9aa0c0;
+  max-width: 240px;
+  margin: 0;
+}
+
+.ftSocials {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.ftSocialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #2a2a4a);
+  color: #c7cce0;
+  text-decoration: none;
+  font-size: 1rem;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.15s;
+}
+
+.ftSocialLink:hover {
+  border-color: var(--cyan, #38e1ff);
+  color: var(--cyan, #38e1ff);
+  transform: translateY(-2px);
+}
+
+.ftSocialLink:focus-visible {
+  outline: 2px solid var(--cyan, #38e1ff);
+  outline-offset: 2px;
+}
+
+.ftCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ftColTitle {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin: 0;
+}
+
+.ftLinkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ftLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.88rem;
+  color: #c7cce0;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+  transition: color 0.15s;
+}
+
+.ftLink:hover {
+  color: var(--cyan, #38e1ff);
+}
+
+.ftLink:focus-visible {
+  outline: 2px solid var(--cyan, #38e1ff);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---- Divider ---- */
+.ftDivider {
+  max-width: 1200px;
+  margin: 40px auto 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--cyan, #38e1ff) 30%,
+    var(--violet, #9b6dff) 70%,
+    transparent
+  );
+  opacity: 0.35;
+}
+
+/* ---- Bottom bar ---- */
+.ftBottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ftCopy {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+  color: #7c82a3;
+  margin: 0;
+}
+
+.ftTopBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 225, 255, 0.06);
+  border: 1px solid var(--border-color, #2a2a4a);
+  color: #c7cce0;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.ftTopBtn:hover {
+  border-color: var(--cyan, #38e1ff);
+  color: var(--cyan, #38e1ff);
+  background: rgba(56, 225, 255, 0.12);
+}
+
+.ftTopBtn:focus-visible {
+  outline: 2px solid var(--cyan, #38e1ff);
+  outline-offset: 2px;
+}
+
+.ftTopBtnArrow {
+  font-size: 0.9rem;
+}
+
+/* ---- Tablet ---- */
+@media (max-width: 880px) {
+  .ftTop {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 24px;
+  }
+
+  .ftBrandCol {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 560px) {
+  .ftRoot {
+    padding: 40px 20px 20px;
+  }
+
+  .ftTop {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .ftTagline {
+    max-width: none;
+  }
+
+  .ftBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ftTopBtn {
+    align-self: flex-start;
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .ftSocialLink,
+  .ftLink,
+  .ftTopBtn {
+    transition: none;
+  }
+}

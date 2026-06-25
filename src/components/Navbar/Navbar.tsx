@@ -4,7 +4,7 @@ import Button from "../Button/Button";
 import { useNavigate, Link } from "react-router";
 import logo from "../../assets/logo-icon.png";
 import { useAuth } from "../../context/useAuth";
-import { UserMenu } from "../UserMenu/UserMenu";
+import UserMenu from "../UserMenu/UserMenu";
 
 type NavItems = {
   label: string;
@@ -23,7 +23,7 @@ const defaultLinks: NavItems[] = [
   { label: "FAQ", href: "#faq" },
 ];
 
-export function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProps) {
+function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProps) {
   const nav = useNavigate();
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -33,7 +33,7 @@ export function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProp
   const [activeSection, setActiveSection] = useState("");
 
   const navGames = () => {
-    nav("/level");
+    nav("/workout");
   };
   const navLogin = () => {
     nav("/login");

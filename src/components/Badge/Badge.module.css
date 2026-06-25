@@ -23,8 +23,8 @@
   background: rgba(167, 139, 250, 0.08);
 }
 .gold {
-  color: var(--accent-gold, #fcd34d);
-  border-color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
+  border-color: var(--accent-gold, #ef8b11);
   background: rgba(252, 211, 77, 0.08);
 }
 .green {
@@ -34,6 +34,15 @@
 }
 
 /* ---- Sizes ---- */
-.sm { font-size: 0.5rem; padding: 0.4rem 0.75rem; }
-.md { font-size: 0.55rem; padding: 0.55rem 1rem; }
-.lg { font-size: 0.65rem; padding: 0.7rem 1.25rem; }
+.sm {
+  font-size: 0.5rem;
+  padding: 0.4rem 0.75rem;
+}
+.md {
+  font-size: 0.55rem;
+  padding: 0.55rem 1rem;
+}
+.lg {
+  font-size: 0.65rem;
+  padding: 0.7rem 1.25rem;
+}

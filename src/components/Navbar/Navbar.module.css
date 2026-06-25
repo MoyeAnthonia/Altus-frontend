@@ -19,7 +19,7 @@
 
 .brandName {
   font-size: 1rem;
-  color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
   text-shadow: 0 0 8px rgba(252, 211, 77, 0.6);
   letter-spacing: 1px;
 }
@@ -49,10 +49,10 @@
   transition: color 0.2s;
 }
 .link:hover {
-  color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
 }
 .active {
-  color: var(--accent-gold, #fcd34d);
+  color: var(--accent-gold, #ef8b11);
 }
 
 /* ---- Action buttons ---- */

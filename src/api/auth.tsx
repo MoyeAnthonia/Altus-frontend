@@ -13,7 +13,7 @@ async function registerUser(username: string, email: string, password: string) {
   // catch error
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message ?? "Registration failed");
+    throw new Error(error.error ?? "Registration failed");
   }
   const data = await response.json();
   return data;
@@ -31,8 +31,7 @@ async function loginUser(email: string, password: string) {
   // catch error
   if (!response.ok) {
     const error = await response.json();
-    console.log("login errorr", error);
-    throw new Error(error.message ?? "Login failed");
+    throw new Error(error.error ?? "Login Failed");
   }
   const data = await response.json();
   return data;

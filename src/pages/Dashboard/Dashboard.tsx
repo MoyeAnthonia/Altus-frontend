@@ -1,4 +1,5 @@
 import styles from "./Dashboard.module.css";
+import { useNavigate } from "react-router";
 
 /* ── Types ── */
 interface DayData {
@@ -42,13 +43,21 @@ const lockedBadges: Badge[] = [
 
 /* ── Component ── */
 function Dashboard() {
+  const nav = useNavigate();
+  const navGames = () => {
+    nav("/workout");
+  };
   return (
     <div className={styles.dbPage}>
       {/* NAV */}
       <nav className={styles.dbNav}>
-        <button className={styles.dbNavBtn}>← Back</button>
+        <button className={styles.dbNavBtn} onClick={() => nav(-1)}>
+          ← Back
+        </button>
         <span className={styles.dbPageTitle}>Dashboard</span>
-        <button className={`${styles.dbNavBtn} ${styles.dbNavBtnAmber}`}>Play →</button>
+        <button className={`${styles.dbNavBtn} ${styles.dbNavBtnAmber}`} onClick={navGames}>
+          Play →
+        </button>
       </nav>
 
       {/* STAT CARDS */}

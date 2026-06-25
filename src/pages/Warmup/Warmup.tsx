@@ -1,7 +1,7 @@
 import styles from "./Warmup.module.css";
 import { useRef } from "react";
 import { useNavigate } from "react-router";
-import { Button } from "../../components/Button/Button";
+import Button from "../../components/Button/Button";
 type CheckStatus = "pending" | "checking" | "ok" | "fail";
 
 interface CheckItem {
@@ -39,7 +39,9 @@ function CameraSetupPage() {
     <div className={styles.csPage}>
       {/* NAV */}
       <nav className={styles.csNav}>
-        <button className={styles.csBackBtn}>Back</button>
+        <button className={styles.csBackBtn} onClick={() => nav(-1)}>
+          ← Back
+        </button>
         <span className={styles.csPageTitle}>Camera Setup</span>
         <div className={styles.csNavSpacer}></div>
       </nav>
