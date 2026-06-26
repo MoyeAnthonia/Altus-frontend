@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ReactNode, RefObject, HTMLAttributes } from "react";
 import { useNavigate } from "react-router";
 import styles from "./Cards.module.css";
 
@@ -118,4 +118,48 @@ function GameCard({
     </article>
   );
 }
-export { FeatureCard, AudienceCard, GameCard };
+
+export type MotionCardSize = "default" | "compact";
+
+interface MotionCardProps extends HTMLAttributes<HTMLDivElement> {
+  /** Ref to the underlying <video> element so a MediaStream can be attached from the parent. */
+  videoRef: RefObject<HTMLVideoElement | null>;
+  /** Caption shown in the bottom strip, e.g. "Squat Detection". */
+  label: string;
+  /** "compact" shrinks the aspect ratio for tighter layouts, like an in-game split screen. */
+  size?: MotionCardSize;
+  /** Shows the dashed alignment guide — useful during calibration, not during live gameplay. */
+  showGuide?: boolean;
+  /** Anything rendered on top of the feed: a CTA button, a status badge, a pose overlay canvas. */
+  children?: ReactNode;
+}
+
+function MotionCard({
+  videoRef,
+  label,
+  size = "default",
+  showGuide = false,
+  children,
+  className,
+  ...rest
+}: MotionCardProps) {
+  const cardClass = [styles.mcCard, size === "compact" && styles.mcCompact, className]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className={cardClass} {...rest}>
+      <video ref={videoRef} className={styles.mcVideo} autoPlay playsInline muted />
+
+      <div className={styles.mcGlow}></div>
+
+      {showGuide && <div className={styles.mcDashedGuide}></div>}
+
+      {children && <div className={styles.mcOverlay}>{children}</div>}
+
+      <div className={styles.mcLabel}>{label}</div>
+    </div>
+  );
+}
+
+export { FeatureCard, AudienceCard, GameCard, MotionCard };

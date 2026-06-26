@@ -10,6 +10,7 @@ import GamePage from "./pages/Game/Game"; // now points to game page
 import LoginPage from "./pages/Login/Login";
 import WorkoutSection from "./components/WorkoutSection/WorkoutSection";
 import Footer from "./components/Footer/Footer";
+import ExercisePage from "./pages/Exercise/Exercise";
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -32,9 +33,10 @@ function App() {
         <Route path="/profile" element={<Dashboard />} />
         <Route path="/level" element={<LevelSection />} />
         <Route path="/warmup" element={<CameraSetupPage />} />
-        <Route path="/exercise" element={<GamePage />} />
+        <Route path="/games" element={<GamePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/workout" element={<WorkoutSection />} />
+        <Route path="/exercise" element={<ExercisePage />} />
       </Routes>
       <Footer />
     </>

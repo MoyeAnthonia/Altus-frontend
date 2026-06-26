@@ -1,7 +1,8 @@
 import styles from "./Warmup.module.css";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import Button from "../../components/Button/Button";
+import { MotionCard } from "../../components/Cards/Cards";
 type CheckStatus = "pending" | "checking" | "ok" | "fail";
 
 interface CheckItem {
@@ -20,12 +21,14 @@ function CameraSetupPage() {
   const allReady = checkItems.every((c) => c.status === "ok");
   const nav = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        setIsCameraOpen(true);
       }
     } catch (err) {
       console.error("Camera access denied:", err);
@@ -49,14 +52,10 @@ function CameraSetupPage() {
       {/* MAIN LAYOUT */}
       <div className={styles.csLayout}>
         {/* LEFT – camera viewport */}
-        <div className={styles.csViewport}>
-          <div className={styles.csDashedInner}></div>
 
-          <video ref={videoRef} autoPlay playsInline width="640" height="480"></video>
-          <Button label="Open Camera" onClick={openCamera} />
-
-          <div className={styles.csViewportLabel}>Squat Detection</div>
-        </div>
+        <MotionCard videoRef={videoRef} label="Squat Detection" showGuide={!isCameraOpen}>
+          {!isCameraOpen && <Button label="Open Camera" onClick={openCamera} />}
+        </MotionCard>
 
         {/* RIGHT – sidebar */}
         <aside className={styles.csSidebar}>

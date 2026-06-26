@@ -1,13 +1,16 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router";
-import { DinoRunGame, type DifficultyKey, type GameEndResult } from "../../engine/DinoRunGameEngine";
+import { useLocation } from "react-router";
+import {
+  DinoRunGame,
+  type DifficultyKey,
+  type GameEndResult,
+} from "../../engine/DinoRunGameEngine";
 
 interface LocationState {
   difficulty: DifficultyKey;
 }
 
 function GamePage() {
-  const nav = useNavigate();
   const location = useLocation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<DinoRunGame | null>(null);
@@ -46,17 +49,20 @@ function GamePage() {
   }, [difficulty]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#1a1a2e" }}>
-      <div style={{ border: "3px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", boxShadow: "0 0 40px rgba(100,200,255,0.15)" }}>
-        <canvas ref={canvasRef} />
-      </div>
-      <button
-        onClick={() => nav(-1)}
-        style={{ marginTop: "16px", fontFamily: '"Press Start 2P", monospace', fontSize: "12px", color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}
-      >
-        ← Back to difficulty select
-      </button>
-    </div>
+    // <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#1a1a2e" }}>
+    //   <div style={{ border: "3px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", boxShadow: "0 0 40px rgba(100,200,255,0.15)" }}>
+    //     <canvas ref={canvasRef} />
+    //   </div>
+    //   <button
+    //     onClick={() => nav(-1)}
+    //     style={{ marginTop: "16px", fontFamily: '"Press Start 2P", monospace', fontSize: "12px", color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}
+    //   >
+    //     ← Back to difficulty select
+    //   </button>
+    // </div>
+    <>
+      <canvas ref={canvasRef} style={{ maxWidth: "100%", maxHeight: "100%" }} />
+    </>
   );
 }
 
