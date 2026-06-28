@@ -1,6 +1,7 @@
 import styles from "./Warmup.module.css";
 import { useNavigate } from "react-router";
 type CheckStatus = "pending" | "checking" | "ok" | "fail";
+import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 
 interface CheckItem {
   id: string;
@@ -23,6 +24,7 @@ function circleClass(status: CheckStatus): string {
 function CameraSetupPage() {
   const allReady = checkItems.every((c) => c.status === "ok");
   const nav = useNavigate();
+  const { isReady } = useMediaPipe();
   const gameNavigate = () => {
     nav("/exercise");
   };
@@ -42,27 +44,12 @@ function CameraSetupPage() {
           <div className={styles.csDashedInner}></div>
 
           {/* Stick figure SVG – placeholder for Week 4 MediaPipe canvas */}
-          <svg
-            className={styles.csStickFigure}
-            viewBox="0 0 100 160"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            {/* head */}
-            <circle cx="50" cy="22" r="18" stroke="#38e1ff" strokeWidth="2.5" />
-            {/* body */}
-            <line x1="50" y1="40" x2="50" y2="95" stroke="#38e1ff" strokeWidth="2.5" />
-            {/* left leg */}
-            <line x1="50" y1="95" x2="28" y2="135" stroke="#38e1ff" strokeWidth="2.5" />
-            <line x1="28" y1="135" x2="28" y2="158" stroke="#38e1ff" strokeWidth="2.5" />
-            {/* right leg */}
-            <line x1="50" y1="95" x2="72" y2="135" stroke="#38e1ff" strokeWidth="2.5" />
-            <line x1="72" y1="135" x2="72" y2="158" stroke="#38e1ff" strokeWidth="2.5" />
-            {/* ankle circles (orange, matching screenshot) */}
-            <circle cx="28" cy="135" r="7" stroke="#f59e0b" strokeWidth="2" />
-            <circle cx="72" cy="135" r="7" stroke="#f59e0b" strokeWidth="2" />
-          </svg>
+          <canvas
+            id="mediapipe-canvas"
+            width={640}
+            height={480}
+            style={{ width: "100%", height: "100%", display: "block" }}
+          />
 
           <div className={styles.csViewportLabel}>Squat Detection</div>
         </div>
