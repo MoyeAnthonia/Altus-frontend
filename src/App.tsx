@@ -5,8 +5,7 @@ import { Home, Features, AudienceSection, SelectWorkoutSection } from "./pages/H
 import {} from "./pages/Home";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import LevelSection from "./pages/Level/Level";
-import CameraSetupPage from "./pages/Warmup/Warmup";
-import GamePage from "./pages/Game/Game"; // now points to game page
+import GamePage from "./pages/Game/Game";
 import LoginPage from "./pages/Login/Login";
 import WorkoutSection from "./components/WorkoutSection/WorkoutSection";
 import Footer from "./components/Footer/Footer";
@@ -32,7 +31,6 @@ function App() {
         />
         <Route path="/profile" element={<Dashboard />} />
         <Route path="/level" element={<LevelSection />} />
-        <Route path="/warmup" element={<CameraSetupPage />} />
         <Route path="/games" element={<GamePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/workout" element={<WorkoutSection />} />

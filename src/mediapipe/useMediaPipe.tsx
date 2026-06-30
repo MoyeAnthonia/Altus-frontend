@@ -17,18 +17,20 @@ interface UseMediaPipeReturn {
   baselineY: number | null;
 }
 
-export function useMediaPipe(): UseMediaPipeReturn {
+export function useMediaPipe({ enabled = false }: { enabled?: boolean } = {}): UseMediaPipeReturn {
   const [isReady, setIsReady] = useState(false);
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [lastMove, setLastMove] = useState<"jump" | "squat" | null>(null);
   const [baselineY, setBaselineY] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     // Start camera + load MediaPipe, then attach both detectors
     initMediaPipe()
-      .then(({ pose }) => {
-        initJumpDetector(pose); // Player jump = Dino speed up
-        initSquatDetector(pose); // Player squat = Dino jump over obstacle
+      .then(() => {
+        initJumpDetector();
+        initSquatDetector();
       })
       .catch((err) => {
         console.warn("[useMediaPipe] Failed to start:", err);
@@ -67,7 +69,7 @@ export function useMediaPipe(): UseMediaPipeReturn {
       window.removeEventListener("mv:squat:start", onSquat);
       window.removeEventListener("mv:squat:end", onSquatEnd);
     };
-  }, []);
+  }, [enabled]);
 
   return { isReady, isCalibrated, lastMove, baselineY };
 }

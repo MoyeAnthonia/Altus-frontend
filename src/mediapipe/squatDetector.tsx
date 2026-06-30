@@ -2,6 +2,8 @@
  * SQUAT DETECTOR
  */
 
+import type { MyPoseDetail } from "./mediapipePlayer";
+
 type Landmark = {
   x: number;
   y: number;
@@ -49,10 +51,10 @@ let lastSquatAt = 0; // timestamp of last confirmed squat
  *
  * @param pose  The MediaPipe Pose instance from initMediaPipe()
  */
-export function initSquatDetector(pose: any) {
-  // MediaPipe will call onSquatFrame() every time it processes a video frame
-  pose.onResults(onSquatFrame);
-
+export function initSquatDetector() {
+  window.addEventListener("mv:pose", (e: Event) => {
+    onSquatFrame((e as CustomEvent<MyPoseDetail>).detail);
+  });
   console.log("[SquatDetector] Please stand still to calibrate...");
 }
 
@@ -68,7 +70,7 @@ export function initSquatDetector(pose: any) {
  *   Standing:  hips at Y = 0.45
  *   Squatting: hips at Y = 0.55
  */
-function onSquatFrame(results: any) {
+function onSquatFrame(results: MyPoseDetail) {
   if (!results.poseLandmarks) return; // no body detected this frame
 
   // Landmark 23 = left hip, Landmark 24 = right hip
@@ -76,6 +78,7 @@ function onSquatFrame(results: any) {
   const lHip: Landmark = results.poseLandmarks[23];
   const rHip: Landmark = results.poseLandmarks[24];
   if (!lHip || !rHip) return;
+  if ((lHip.visibility ?? 0) < 0.5 || (rHip.visibility ?? 0) < 0.5) return;
 
   const y = (lHip.y + rHip.y) / 2;
   const now = performance.now();

@@ -5,7 +5,7 @@ function LevelSection() {
   const nav = useNavigate();
 
   const gameNavigate = (difficulty: "easy" | "medium" | "hard" | "score_attack") => {
-    nav("/warmup", { state: { difficulty } });
+    nav("/exercise", { state: { difficulty } });
   };
 
   return (
