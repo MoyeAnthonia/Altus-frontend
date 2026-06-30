@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import Button from "../../components/Button/Button";
 import { MotionCard } from "../../components/Cards/Cards";
 type CheckStatus = "pending" | "checking" | "ok" | "fail";
+import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 
 interface CheckItem {
   id: string;
@@ -22,6 +23,8 @@ function CameraSetupPage() {
   const nav = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  useMediaPipe({ enabled: cameraEnabled });
 
   const openCamera = async () => {
     try {
@@ -30,6 +33,7 @@ function CameraSetupPage() {
         videoRef.current.srcObject = stream;
         setIsCameraOpen(true);
       }
+      setCameraEnabled(true);
     } catch (err) {
       console.error("Camera access denied:", err);
     }
@@ -55,6 +59,14 @@ function CameraSetupPage() {
 
         <MotionCard videoRef={videoRef} label="Squat Detection" showGuide={!isCameraOpen}>
           {!isCameraOpen && <Button label="Open Camera" onClick={openCamera} />}
+          {isCameraOpen && (
+            <canvas
+              id="mediapipe-canvas"
+              width={640}
+              height={480}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+            />
+          )}
         </MotionCard>
 
         {/* RIGHT – sidebar */}

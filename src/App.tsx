@@ -6,7 +6,7 @@ import {} from "./pages/Home";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import LevelSection from "./pages/Level/Level";
 import CameraSetupPage from "./pages/Warmup/Warmup";
-import GamePage from "./pages/Game/Game"; // now points to game page
+import GamePage from "./pages/Game/Game";
 import LoginPage from "./pages/Login/Login";
 import WorkoutSection from "./components/WorkoutSection/WorkoutSection";
 import Footer from "./components/Footer/Footer";
