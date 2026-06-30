@@ -1,16 +1,3 @@
-// dinoRunEngine.ts
-// Vanilla Canvas2D Dino Run engine. No globals, no DOM assumptions beyond
-// the canvas element passed in. Designed to be instantiated from React.
-//
-// Usage:
-//   import { DinoRunGame, DIFFICULTIES, type DifficultyKey, type GameEndResult } from './dinoRunEngine';
-//   const game = new DinoRunGame({
-//     canvas: canvasEl,
-//     difficulty: 'medium',
-//     onGameEnd: (result) => {},
-//   });
-//   game.destroy(); // call on unmount
-
 const W = 800, H = 300;
 const GROUND_Y = H - 8;
 const GRAVITY = 1800;
@@ -256,6 +243,8 @@ export class DinoRunGame {
   private _onKeyDown: (e: KeyboardEvent) => void;
   private _onKeyUp: (e: KeyboardEvent) => void;
   private _onMouseDown: () => void;
+  private _onMvSquat: () => void; // MediaPipe: squat = jump
+  private _onMvCalibrated: () => void; // MediaPipe: calibrated = start game
 
   constructor(opts: DinoRunGameOptions) {
     if (!opts.canvas) throw new Error('DinoRunGame requires opts.canvas');
@@ -280,12 +269,21 @@ export class DinoRunGame {
 
     this._onKeyDown = (e) => this.handleKeyDown(e);
     this._onKeyUp   = (e) => { this.keys[e.code] = false; };
-    this._onMouseDown = () => this.handleJump();
+    this._onMouseDown = () => {};
+    // MediaPipe: squat = jump
+    this._onMvSquat = () => {
+      if (this.sm.is('ACTIVE')) this.handleJump();
+    };
+    // MediaPipe: calibrated = start game
+    this._onMvCalibrated = () => {
+      if (this.sm.is('CALIBRATING')) this.sm.transition('ACTIVE');
+  };
 
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
     this.canvas.addEventListener('mousedown', this._onMouseDown);
-
+    window.addEventListener('mv:squat:start', this._onMvSquat);
+    window.addEventListener('mv:calibrated', this._onMvCalibrated);
     this.reset();
     this.onIdle();
     this.lastTime = performance.now();
@@ -330,11 +328,22 @@ export class DinoRunGame {
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
-    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); this.handleJump(); }
-    if (e.code === 'ArrowDown') this.keys.down = true;
-    if (e.code === 'KeyP') {
-      if (this.sm.is('ACTIVE')) this.sm.transition('PAUSED');
-      else if (this.sm.is('PAUSED')) this.sm.transition('ACTIVE');
+  // Only mediapipe works for scoring now!
+  // P key toggles pause/resume
+  if (e.code === 'KeyP') {
+    if (this.sm.is('ACTIVE')) this.sm.transition('PAUSED');
+    else if (this.sm.is('PAUSED')) this.sm.transition('ACTIVE');
+  }
+
+  // Space/Up only allowed for non-jump state transitions
+  // (starting the game, retrying after game over/win)
+  // NOT for jumping during ACTIVE — that requires a real squat via MediaPipe
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    const S = StateMachine.STATES;
+    if (this.sm.is(S.IDLE))      { this.sm.transition('CALIBRATING'); return; }
+    if (this.sm.is(S.GAME_OVER)) { this.restart(); return; }
+    if (this.sm.is(S.WIN))       { this.restart(); return; }
     }
   }
 
@@ -502,7 +511,7 @@ export class DinoRunGame {
     const ctx = this.ctx;
     drawRect(ctx, W/2 - 170, H/2 - 60, 340, 100, 'rgba(30,41,59,0.95)', C.dino, 2);
     drawText(ctx, 'DINO RUN', W/2, H/2 - 30, 24, '#38bdf8', 'center', 'middle');
-    drawText(ctx, 'PRESS SPACE TO START', W/2, H/2 + 10, 10, '#94a3b8', 'center', 'middle');
+    drawText(ctx, 'SPACE TO START', W/2, H/2 + 10, 10, '#94a3b8', 'center', 'middle');
   }
 
   private renderCalibrating(): void {
@@ -583,5 +592,7 @@ export class DinoRunGame {
     window.removeEventListener('keydown', this._onKeyDown);
     window.removeEventListener('keyup', this._onKeyUp);
     this.canvas.removeEventListener('mousedown', this._onMouseDown);
+    window.removeEventListener('mv:squat:start', this._onMvSquat);
+    window.removeEventListener('mv:calibrated', this._onMvCalibrated);
   }
 }

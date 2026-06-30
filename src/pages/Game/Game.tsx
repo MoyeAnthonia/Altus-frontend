@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
+import { useMediaPipe } from '../../mediapipe/useMediaPipe';
 import {
   DinoRunGame,
   type DifficultyKey,
@@ -18,6 +19,8 @@ function GamePage() {
   // Read the difficulty that Level.tsx passed through router state.
   // Falls back to 'medium' if someone navigates directly to /game.
   const difficulty = (location.state as LocationState)?.difficulty ?? "medium";
+
+  useMediaPipe();
 
   useEffect(() => {
     if (!canvasRef.current) return;
