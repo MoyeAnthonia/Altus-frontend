@@ -1,4 +1,4 @@
-# MoveVerse
+# Altus
 
 A gamified fitness application that tracks user's motion using Mediapipe.
 
@@ -12,7 +12,7 @@ A gamified fitness application that tracks user's motion using Mediapipe.
 
 ```bash
 git clone <repo-url>
-cd moveverse-frontend
+cd Altus-frontend
 ```
 
 ## Running the app

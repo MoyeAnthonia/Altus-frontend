@@ -22,6 +22,8 @@ type GameCardProps = HTMLAttributes<HTMLDivElement> & {
   exercise: string;
   description: string;
   ctaLabel?: string;
+  disabled?: boolean;
+  onPlay?: () => void;
 };
 
 function FeatureCard({ icon, title, description, className, ...rest }: FeatureCardProps) {
@@ -86,22 +88,36 @@ function GameCard({
   exercise,
   description,
   ctaLabel = "Play",
+  disabled = false,
+  onPlay,
   className,
   ...props
 }: GameCardProps) {
   const nav = useNavigate();
   const gameNavigate = () => {
+    if (disabled) return;
+    onPlay?.();
     nav("/level");
   };
 
+  const cardClass = [styles.gameCard, disabled && styles.gameCardDisabled, className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <article className={`${styles.gameCard} ${className ?? ""}`} {...props}>
+    <article className={cardClass} {...props}>
       <div className={styles.gameMedia}>{media}</div>
 
       <h3 className={styles.gameTitle}>{title}</h3>
       <p className={styles.gameExercise}>{exercise}</p>
       <p className={styles.gameDesc}>{description}</p>
-      <button type="button" className={styles.playBtn} onClick={gameNavigate}>
+      <button
+        type="button"
+        className={styles.playBtn}
+        onClick={gameNavigate}
+        disabled={disabled}
+        aria-disabled={disabled}
+      >
         {ctaLabel}
         <svg
           viewBox="0 0 24 24"

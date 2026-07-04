@@ -21,7 +21,7 @@ type HeroProps = {
 
 const defaultStats: Stat[] = [
   { value: "2", label: "Games" },
-  { value: "10K+", label: "Players" },
+  { value: "5", label: "Players" },
   { value: "★ 4.9", label: "Rating" },
 ];
 
@@ -57,7 +57,7 @@ const USERSTYPECARDSARR = [
     accent: "orange",
     title: "Your chair is killing you",
     description:
-      "Sciatica, piriformis syndrome, lower back pain, and tech neck — sitting disease is real. Eight hours at a desk compresses your spine and pinches your sciatic nerve, causing that electric shooting pain down your leg. MoveVerse reminds you to move your body every 60 minutes (or more, or less).",
+      "Sciatica, piriformis syndrome, lower back pain, and tech neck — sitting disease is real. Eight hours at a desk compresses your spine and pinches your sciatic nerve, causing that electric shooting pain down your leg. Altus reminds you to move your body every 60 minutes (or more, or less).",
     ctaLabel: "Add movement before the damage sets in",
   },
   {
@@ -65,7 +65,7 @@ const USERSTYPECARDSARR = [
     accent: "cyan",
     title: "Where recovery meets play",
     description:
-      "Foam rolling and stretching feel like chores. MoveVerse turns mobility work into motion-controlled mini-games, so active recovery becomes something you actually look forward to between training days.",
+      "Foam rolling and stretching feel like chores. Altus turns mobility work into motion-controlled mini-games, so active recovery becomes something you actually look forward to between training days.",
     ctaLabel: "Turn rest days into play days",
   },
   {
@@ -73,7 +73,7 @@ const USERSTYPECARDSARR = [
     accent: "blue",
     title: "No gym, no equipment, no excuses",
     description:
-      "No membership, no dumbbells, no problem. Every MoveVerse session uses just your bodyweight and your webcam, so you can get moving in your living room with zero setup.",
+      "No membership, no dumbbells, no problem. Every Altus session uses just your bodyweight and your webcam, so you can get moving in your living room with zero setup.",
     ctaLabel: "Start with just your body",
   },
 ];
@@ -136,7 +136,7 @@ function Features({ badge = "Features" }: { badge?: string }) {
       <div className="wrap">
         <div className={styles.how__head}>
           <Badge label={badge} variant="cyan" />
-          <h2 className={styles.how__title}>How It Works</h2>
+          <h2 className={styles.heading}>How It Works</h2>
         </div>
 
         <div className={styles.how__grid}>
@@ -157,7 +157,7 @@ function AudienceSection({ badge = "Users" }: { badge?: string }) {
         <Badge label={badge} variant="cyan" />
         <h2 className={styles.heading}>Who is this for?</h2>
         <p className={styles.subtitle}>
-          MoveVerse is built for anyone who wants to move more and sit less
+          Altus is built for anyone who wants to move more and sit less
         </p>
 
         <div className={styles.grid}>
