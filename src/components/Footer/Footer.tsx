@@ -21,7 +21,7 @@ const defaultQuickLinks: FooterLink[] = [
 ];
 
 const defaultGameLinks: FooterLink[] = [
-  { label: "Branch Hopper", href: "#games" },
+  { label: "Dino Hopper", href: "#games" },
   { label: "Lily Leaper", href: "#games" },
 ];
 
@@ -33,7 +33,7 @@ function formatTeam(team: string[]) {
 }
 
 function Footer({
-  brand = "MoveVerse",
+  brand = "Altus",
   tagline = "Turn your workout into a game.",
   quickLinks = defaultQuickLinks,
   gameLinks = defaultGameLinks,

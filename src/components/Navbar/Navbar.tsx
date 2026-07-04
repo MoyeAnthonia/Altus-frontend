@@ -20,10 +20,9 @@ const defaultLinks: NavItems[] = [
   { label: "Features", href: "#features" },
   { label: "Who It's For", href: "#audience" },
   { label: "Games", href: "#games" },
-  { label: "FAQ", href: "#faq" },
 ];
 
-function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProps) {
+function Navbar({ brand = "ALTUS", links = defaultLinks }: NavbarProps) {
   const nav = useNavigate();
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -67,7 +66,7 @@ function Navbar({ brand = "MoveVerse", links = defaultLinks }: NavbarProps) {
     <nav className={styles.navbar}>
       {/* Logo */}
       <Link to="/" className={styles.brandLogo}>
-        <img src={logo} alt="Moveverse Logo" width="40" height="40" />
+        <img src={logo} alt="Altus Logo" width="40" height="40" />
         <span className={styles.brandName}>{brand}</span>
       </Link>
 

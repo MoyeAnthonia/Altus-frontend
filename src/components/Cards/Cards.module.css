@@ -238,18 +238,41 @@
   }
 }
 
-/* game card */
+/* ==========================================================================
+   Game card + grid
+   ========================================================================== */
+
+/* Wrap your <GameCard /> pair (or list) in an element with this class.
+   Equal-width columns + grid's default align-items: stretch is what makes
+   both cards match height automatically — no fixed height needed. */
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem;
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 720px) {
+  .gameGrid {
+    grid-template-columns: 1fr;
+    max-width: 26rem;
+  }
+}
+
 .gameCard {
-  --game-accent: #f0913c; /* warm orange for the exercise label + Play button */
+  --game-accent: rgb(239, 139, 17); /* warm orange for the exercise label + Play button */
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: clamp(1rem, 2vw, 1.4rem);
+  width: 100%;
+  max-width: 26rem; /* caps size on very wide single-card contexts */
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
   border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(0, 0, 0, 0) 45%), rgba(10, 15, 33, 0.72);
-  border: 1px solid rgba(77, 144, 246, 0.45);
+  border: 2px solid rgb(1, 98, 204);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.02) inset,
     0 18px 40px rgba(0, 0, 0, 0.35);
@@ -262,17 +285,34 @@
   border-color: rgba(56, 225, 255, 0.6);
   transform: translateY(-4px);
   box-shadow:
-    0 0 0 1px rgba(56, 225, 255, 0.25),
+    0 0 0 1px rgb(1, 98, 204),
     0 22px 48px rgba(0, 0, 0, 0.45);
 }
+gameCardDisabled {
+  opacity: 0.6;
+}
 
-/* The preview panel. The SVG/img fills it and carries its own background. */
+.playBtn:disabled {
+  cursor: not-allowed;
+  color: #8a8ab0;
+  border-color: rgba(138, 138, 176, 0.4);
+  background: rgba(138, 138, 176, 0.08);
+  box-shadow: none;
+}
+.playBtn:disabled:hover {
+  transform: none;
+  border: 1px solid var(--game-accent);
+  background: rgba(138, 138, 176, 0.08);
+}
+/* The preview panel. aspect-ratio keeps it proportional at any card width;
+   flex-shrink: 0 stops it from being squeezed by the flex column. */
 .gameMedia {
   width: 100%;
   aspect-ratio: 12 / 5;
+  flex-shrink: 0;
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 1.4rem;
+  margin-bottom: clamp(1rem, 2vw, 1.4rem);
   background: rgba(0, 0, 0, 0.25);
 }
 .gameMedia > * {
@@ -305,7 +345,11 @@
 
 .gameDesc {
   margin: 0 0 1.6rem;
-  max-width: 34ch;
+  max-width: 28ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-family: var(--font-body, "Exo 2", system-ui, sans-serif);
   font-size: 0.95rem;
   font-weight: 300;
@@ -362,7 +406,7 @@
   }
 }
 
-/* Motin Card styles */
+/* Motion Card styles */
 .mcCard {
   position: relative;
   overflow: hidden;

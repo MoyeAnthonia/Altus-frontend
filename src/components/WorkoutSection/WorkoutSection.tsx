@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import styles from "./WorkoutSection.module.css";
+
 import { GameCard } from "../Cards/Cards";
 
 type SelectWorkoutSectionProps = {
@@ -9,19 +10,19 @@ type SelectWorkoutSectionProps = {
 const GAMESCARDARR = [
   {
     id: "branch-hopper",
-    title: "Branch Hopper",
-    exercise: "Push-ups",
-    description:
-      "Help the blue pigeon fly up through the branches! Each push-up lifts the bird higher.",
+    title: "Dino Hopper",
+    exercise: "Squats",
+    description: "Help the dino hop through the obstacles!",
     ctaLabel: "Play",
+    disabled: false,
   },
   {
     id: "lily-leaper",
     title: "Lily Leaper",
-    exercise: "Squats",
-    description:
-      "Guide the frog up through lily pads! Each squat propels the frog to a higher pad.",
-    ctaLabel: "Play",
+    exercise: "Push-Ups",
+    description: "Guide the frog up through lily pads!",
+    ctaLabel: "Coming Soon",
+    disabled: true,
   },
 ];
 
@@ -77,7 +78,7 @@ function WorkoutSection({ onPlay }: SelectWorkoutSectionProps) {
     <section id="games" className={styles.games}>
       <div className={styles.gamesInner}>
         <span className={styles.gamesPill}>Choose your game</span>
-        <h2 className={styles.gamesHeading}>Select a workout</h2>
+        <h3 className={styles.gamesHeading}>Select a workout</h3>
 
         <div className={styles.gamesGrid}>
           {GAMESCARDARR.map((game) => (
@@ -88,6 +89,7 @@ function WorkoutSection({ onPlay }: SelectWorkoutSectionProps) {
               exercise={game.exercise}
               description={game.description}
               ctaLabel={game.ctaLabel}
+              disabled={game.disabled}
               onPlay={() => onPlay?.(game.id)}
             />
           ))}
