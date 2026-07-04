@@ -91,7 +91,7 @@ function LoginPage() {
             viewBox="0 0 80 80"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            aria-label="MoveVerse logo"
+            aria-label="Altus logo"
           >
             <circle cx="40" cy="14" r="10" stroke="#38e1ff" strokeWidth="2.5" />
             <line x1="40" y1="24" x2="40" y2="52" stroke="#38e1ff" strokeWidth="2.5" />
@@ -103,7 +103,7 @@ function LoginPage() {
             <circle cx="58" cy="46" r="4" stroke="#f59e0b" strokeWidth="2" />
           </svg>
 
-          <span className={styles.lgBrandName}>MoveVerse</span>
+          <span className={styles.lgBrandName}>Altus</span>
 
           <p className={styles.lgTagline}>
             Turn every push-up and squat into a game. Your body is the controller.
