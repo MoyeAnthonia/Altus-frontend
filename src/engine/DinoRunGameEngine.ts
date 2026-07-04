@@ -1,61 +1,49 @@
-const W = 800, H = 300;
-const GROUND_Y = H - 8;
-const GRAVITY = 1800;
-const JUMP_VEL = -700;
-const INITIAL_SPEED = 350;
-const MAX_SPEED = 900;
+// dinoRunEngine.ts
+
+const W = 1200, H = 620;
+const GROUND_Y = H - 12;
+const GRAVITY = 2200;
+const JUMP_VEL = -900;
+const INITIAL_SPEED = 420;
+const MAX_SPEED = 1100;
 const FONT = '"Press Start 2P", monospace';
 
 const C = {
   bg:     '#0f172a',
   ground: '#334155',
-  dino:   '#38bdf8',
+  dino:   '#4ade80',  // green
+  dinoDark: '#16a34a',
+  dinoEye: '#0f172a',
   dead:   '#e74c3c',
+  deadDark: '#991b1b',
   cactus: '#4ade80',
+  cactusDark: '#16a34a',
   cloud:  '#1e293b',
   star:   '#475569',
 } as const;
 
 // ── Types ────────────────────────────────────────────────────────────────
 type StateName = 'IDLE' | 'CALIBRATING' | 'ACTIVE' | 'PAUSED' | 'GAME_OVER' | 'WIN';
-
 export type DifficultyKey = 'easy' | 'medium' | 'hard' | 'score_attack';
 
 interface DifficultyConfig {
-  label: string;
-  repGoal: number;
-  speed: number;
-  obstacleDelay: number;
-  color: string;
+  label: string; repGoal: number; speed: number; obstacleDelay: number; color: string;
 }
-
 export interface ScoreBreakdown {
-  repStreak: number;
-  timeMult: number;
-  finalScore: number;
-  secs: number;
+  repStreak: number; timeMult: number; finalScore: number; secs: number;
 }
-
 export interface GameEndResult extends ScoreBreakdown {
-  result: 'won' | 'lost';
-  score: number;
+  result: 'won' | 'lost'; score: number;
 }
-
 interface DinoState {
   x: number; y: number; w: number; h: number;
   vy: number; frame: 0 | 1; frameTimer: number;
   ducking: boolean; dead: boolean;
 }
-
 type CactusType = 'sm' | 'tall' | 'dbl';
-
-interface Obstacle {
-  x: number; type: CactusType; w: number; h: number; scored: boolean;
-}
-
+interface Obstacle { x: number; type: CactusType; w: number; h: number; scored: boolean; }
 interface Cloud { x: number; y: number; scrollSpeed: number; alpha: number; }
 interface Star { x: number; y: number; size: number; alpha: number; }
-
 export interface DinoRunGameOptions {
   canvas: HTMLCanvasElement;
   difficulty?: DifficultyKey;
@@ -68,7 +56,6 @@ class StateMachine {
     IDLE: 'IDLE', CALIBRATING: 'CALIBRATING',
     ACTIVE: 'ACTIVE', PAUSED: 'PAUSED', GAME_OVER: 'GAME_OVER', WIN: 'WIN',
   };
-
   static TRANSITIONS: Record<StateName, StateName[]> = {
     IDLE:        ['CALIBRATING'],
     CALIBRATING: ['ACTIVE', 'IDLE'],
@@ -77,39 +64,30 @@ class StateMachine {
     GAME_OVER:   ['IDLE'],
     WIN:         ['IDLE'],
   };
-
   current: StateName;
   private _listeners: Partial<Record<StateName, Array<(from: StateName) => void>>> = {};
-
   constructor(initial: StateName = 'IDLE') { this.current = initial; }
-
   is(state: StateName): boolean { return this.current === state; }
-
   canTransition(to: StateName): boolean {
     return StateMachine.TRANSITIONS[this.current]?.includes(to) ?? false;
   }
-
   transition(to: StateName): boolean {
-    if (!this.canTransition(to)) {
-      console.warn(`Invalid transition: ${this.current} → ${to}`);
-      return false;
-    }
+    if (!this.canTransition(to)) { console.warn(`Invalid transition: ${this.current} → ${to}`); return false; }
     const from = this.current;
     this.current = to;
     (this._listeners[to] || []).forEach(cb => cb(from));
     return true;
   }
-
   on(state: StateName, cb: (from: StateName) => void): void {
     (this._listeners[state] ??= []).push(cb);
   }
 }
 
 export const DIFFICULTIES: Record<DifficultyKey, DifficultyConfig> = {
-  easy:         { label: 'Easy',         repGoal: 10,       speed: 350, obstacleDelay: 3000, color: '#4ade80' },
-  medium:       { label: 'Medium',       repGoal: 20,       speed: 350, obstacleDelay: 3000, color: '#38bdf8' },
-  hard:         { label: 'Hard',         repGoal: 40,       speed: 350, obstacleDelay: 3000, color: '#fbbf24' },
-  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 350, obstacleDelay: 3000, color: '#e74c3c' },
+  easy:         { label: 'Easy',         repGoal: 10,       speed: 420, obstacleDelay: 5000, color: '#4ade80' },
+  medium:       { label: 'Medium',       repGoal: 20,       speed: 420, obstacleDelay: 5000, color: '#38bdf8' },
+  hard:         { label: 'Hard',         repGoal: 40,       speed: 420, obstacleDelay: 5000, color: '#fbbf24' },
+  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 420, obstacleDelay: 5000, color: '#e74c3c' },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -118,10 +96,8 @@ function randInt(min: number, max: number): number { return Math.floor(rand(min,
 function pick<T>(arr: T[]): T { return arr[randInt(0, arr.length - 1)]; }
 
 function drawText(
-  ctx: CanvasRenderingContext2D,
-  text: string, x: number, y: number, size: number, color: string,
-  align: CanvasTextAlign = 'left',
-  baseline: CanvasTextBaseline = 'top'
+  ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, color: string,
+  align: CanvasTextAlign = 'left', baseline: CanvasTextBaseline = 'top'
 ): void {
   ctx.font = `${size}px ${FONT}`;
   ctx.fillStyle = color;
@@ -131,8 +107,7 @@ function drawText(
 }
 
 function drawRect(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number,
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
   color: string, strokeColor?: string, strokeWidth?: number
 ): void {
   ctx.fillStyle = color;
@@ -144,69 +119,155 @@ function drawRect(
   }
 }
 
-// ── Sprite drawing ──────────────────────────────────────────────────────
+// ── Hi-res Dino sprite (80x72 px, 2× scale of original) ─────────────────
 function drawDino(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, frame: 0 | 1, ducking: boolean, dead: boolean
 ): void {
-  ctx.fillStyle = dead ? C.dead : C.dino;
+  const main  = dead ? C.dead     : C.dino;
+  const dark  = dead ? C.deadDark : C.dinoDark;
+  const eye   = C.dinoEye;
+
+  // pixel size — each "pixel" is 4×4 for crisp hi-res look
+  const P = 4;
+
   if (ducking) {
-    ctx.fillRect(x + 4, y + 10, 30, 14);
-    ctx.fillRect(x + 26, y + 2, 14, 12);
-    ctx.fillRect(x + 0, y + 14, 8, 6);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(x + 34, y + 4, 3, 3);
-    ctx.fillStyle = dead ? C.dead : C.dino;
-    if (frame === 0) { ctx.fillRect(x + 10, y + 24, 6, 8); ctx.fillRect(x + 22, y + 24, 6, 4); }
-    else              { ctx.fillRect(x + 10, y + 24, 6, 4); ctx.fillRect(x + 22, y + 24, 6, 8); }
-  } else {
-    ctx.fillRect(x + 8, y + 4, 22, 20);
-    ctx.fillRect(x + 22, y + 0, 14, 14);
-    ctx.fillRect(x + 0, y + 14, 10, 6);
-    ctx.fillRect(x + 2, y + 10, 6, 6);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(x + 30, y + 3, 3, 3);
-    if (!dead) ctx.fillRect(x + 33, y + 9, 4, 2);
-    if (!dead) ctx.fillRect(x + 22, y + 12, 6, 4);
-    ctx.fillStyle = dead ? C.dead : C.dino;
-    if (dead) {
-      ctx.fillRect(x + 12, y + 24, 6, 12); ctx.fillRect(x + 24, y + 24, 6, 12);
-    } else if (frame === 0) {
-      ctx.fillRect(x + 12, y + 24, 6, 12); ctx.fillRect(x + 24, y + 24, 6, 8);
+    // Ducking body (wide, low)
+    ctx.fillStyle = main;
+    ctx.fillRect(x + 2*P, y + 6*P, 16*P, 6*P);   // main body
+    ctx.fillRect(x + 14*P, y + 2*P, 8*P, 6*P);   // head
+    ctx.fillRect(x + 0,    y + 8*P, 4*P, 4*P);   // tail base
+    ctx.fillStyle = dark;
+    ctx.fillRect(x + 2*P, y + 10*P, 16*P, 2*P);  // body shadow
+    ctx.fillRect(x + 14*P, y + 6*P,  8*P, 2*P);  // head shadow
+    ctx.fillStyle = eye;
+    ctx.fillRect(x + 20*P, y + 3*P, 2*P, 2*P);   // eye
+    ctx.fillStyle = main;
+    // legs
+    if (frame === 0) {
+      ctx.fillRect(x + 6*P,  y + 12*P, 3*P, 6*P);
+      ctx.fillRect(x + 12*P, y + 12*P, 3*P, 4*P);
     } else {
-      ctx.fillRect(x + 12, y + 24, 6, 8);  ctx.fillRect(x + 24, y + 24, 6, 12);
+      ctx.fillRect(x + 6*P,  y + 12*P, 3*P, 4*P);
+      ctx.fillRect(x + 12*P, y + 12*P, 3*P, 6*P);
     }
+  } else {
+    // Standing body
+    ctx.fillStyle = main;
+    ctx.fillRect(x + 4*P,  y + 4*P,  12*P, 12*P);  // torso
+    ctx.fillRect(x + 10*P, y + 0,     9*P,  9*P);   // head
+    ctx.fillRect(x + 0,    y + 8*P,   6*P,  4*P);   // tail upper
+    ctx.fillRect(x + 1*P,  y + 6*P,   4*P,  4*P);   // tail tip
+    // snout
+    ctx.fillRect(x + 17*P, y + 3*P,   3*P,  4*P);
+    ctx.fillRect(x + 19*P, y + 6*P,   2*P,  1*P);   // nostril line
+
+    // shading / depth
+    ctx.fillStyle = dark;
+    ctx.fillRect(x + 4*P,  y + 14*P, 12*P, 2*P);   // torso bottom shade
+    ctx.fillRect(x + 10*P, y + 7*P,   9*P, 2*P);   // head bottom shade
+    ctx.fillRect(x + 4*P,  y + 4*P,   2*P, 12*P);  // torso left shade
+
+    // eye
+    ctx.fillStyle = eye;
+    ctx.fillRect(x + 15*P, y + 2*P, 2*P, 2*P);
+    // eye shine
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 15*P, y + 2*P, 1*P, 1*P);
+
+    // neck indent
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(x + 10*P, y + 8*P, 3*P, 2*P);
+
+    // arm nub
+    ctx.fillStyle = main;
+    ctx.fillRect(x + 14*P, y + 9*P, 3*P, 2*P);
+
+    // legs
+    ctx.fillStyle = main;
+    if (dead) {
+      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 8*P);
+      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 8*P);
+    } else if (frame === 0) {
+      // left leg forward, right leg back
+      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 9*P);
+      ctx.fillRect(x + 6*P,  y + 23*P, 5*P, 2*P);  // left foot
+      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 6*P);
+      ctx.fillRect(x + 11*P, y + 20*P, 5*P, 2*P);  // right foot
+    } else {
+      // legs swapped
+      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 6*P);
+      ctx.fillRect(x + 5*P,  y + 20*P, 5*P, 2*P);  // left foot
+      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 9*P);
+      ctx.fillRect(x + 12*P, y + 23*P, 5*P, 2*P);  // right foot
+    }
+    // leg shading
+    ctx.fillStyle = dark;
+    ctx.fillRect(x + 6*P,  y + 16*P, 1*P, dead ? 8*P : 6*P);
+    ctx.fillRect(x + 12*P, y + 16*P, 1*P, dead ? 8*P : 6*P);
   }
 }
 
+// ── Cactus (scaled up, with shading) ─────────────────────────────────────
 function drawCactus(ctx: CanvasRenderingContext2D, x: number, bottomY: number, type: CactusType): void {
+  const P = 4;
   ctx.fillStyle = C.cactus;
   if (type === 'sm') {
-    ctx.fillRect(x + 10, bottomY - 40, 10, 40);
-    ctx.fillRect(x + 0, bottomY - 30, 10, 8); ctx.fillRect(x + 0, bottomY - 34, 12, 6);
-    ctx.fillRect(x + 20, bottomY - 26, 10, 8); ctx.fillRect(x + 18, bottomY - 30, 12, 6);
+    // stem
+    ctx.fillRect(x + 8*P, bottomY - 60, 6*P, 60);
+    // left arm
+    ctx.fillRect(x + 0,   bottomY - 44, 8*P, 5*P);
+    ctx.fillRect(x + 0,   bottomY - 52, 5*P, 8*P);
+    // right arm
+    ctx.fillRect(x + 14*P, bottomY - 38, 8*P, 5*P);
+    ctx.fillRect(x + 17*P, bottomY - 46, 5*P, 8*P);
+    // shading
+    ctx.fillStyle = C.cactusDark;
+    ctx.fillRect(x + 8*P,  bottomY - 60, 2*P, 60);
+    ctx.fillRect(x + 0,    bottomY - 52, 2*P, 8*P);
+    ctx.fillRect(x + 17*P, bottomY - 46, 2*P, 8*P);
   } else if (type === 'tall') {
-    ctx.fillRect(x + 14, bottomY - 56, 12, 56);
-    ctx.fillRect(x + 0, bottomY - 44, 14, 10); ctx.fillRect(x + 0, bottomY - 50, 16, 8);
-    ctx.fillRect(x + 26, bottomY - 38, 14, 10); ctx.fillRect(x + 24, bottomY - 44, 16, 8);
+    // stem
+    ctx.fillRect(x + 10*P, bottomY - 84, 8*P, 84);
+    // left arm
+    ctx.fillRect(x + 0,    bottomY - 60, 10*P, 6*P);
+    ctx.fillRect(x + 0,    bottomY - 74, 6*P, 14*P);
+    // right arm
+    ctx.fillRect(x + 18*P, bottomY - 54, 10*P, 6*P);
+    ctx.fillRect(x + 22*P, bottomY - 68, 6*P, 14*P);
+    // shading
+    ctx.fillStyle = C.cactusDark;
+    ctx.fillRect(x + 10*P, bottomY - 84, 2*P, 84);
+    ctx.fillRect(x + 0,    bottomY - 74, 2*P, 14*P);
+    ctx.fillRect(x + 22*P, bottomY - 68, 2*P, 14*P);
   } else {
-    ctx.fillRect(x + 6, bottomY - 36, 8, 36); ctx.fillRect(x + 0, bottomY - 26, 6, 6); ctx.fillRect(x + 14, bottomY - 22, 6, 6);
-    ctx.fillRect(x + 26, bottomY - 36, 8, 36); ctx.fillRect(x + 20, bottomY - 26, 6, 6); ctx.fillRect(x + 34, bottomY - 22, 6, 6);
+    // double cactus
+    ctx.fillStyle = C.cactus;
+    ctx.fillRect(x + 2*P,  bottomY - 54, 6*P, 54);
+    ctx.fillRect(x + 0,    bottomY - 40, 2*P, 5*P);
+    ctx.fillRect(x + 8*P,  bottomY - 34, 2*P, 5*P);
+    ctx.fillRect(x + 14*P, bottomY - 54, 6*P, 54);
+    ctx.fillRect(x + 12*P, bottomY - 40, 2*P, 5*P);
+    ctx.fillRect(x + 20*P, bottomY - 34, 2*P, 5*P);
+    // shading
+    ctx.fillStyle = C.cactusDark;
+    ctx.fillRect(x + 2*P,  bottomY - 54, 2*P, 54);
+    ctx.fillRect(x + 14*P, bottomY - 54, 2*P, 54);
   }
 }
 
 function cactusDims(type: CactusType): { w: number; h: number } {
-  if (type === 'sm')   return { w: 30, h: 40 };
-  if (type === 'tall') return { w: 40, h: 56 };
-  return { w: 40, h: 36 };
+  if (type === 'sm')   return { w: 88,  h: 60  };
+  if (type === 'tall') return { w: 112, h: 84  };
+  return                      { w: 96,  h: 54  };
 }
 
 function drawCloud(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.fillStyle = C.cloud;
-  ctx.fillRect(x + 12, y + 12, 60, 16);
-  ctx.fillRect(x + 20, y + 4, 24, 12);
-  ctx.fillRect(x + 8, y + 8, 20, 10);
-  ctx.fillRect(x + 48, y + 8, 16, 10);
+  ctx.fillRect(x + 18, y + 18, 90, 24);
+  ctx.fillRect(x + 30, y + 6,  36, 18);
+  ctx.fillRect(x + 12, y + 12, 30, 15);
+  ctx.fillRect(x + 72, y + 12, 24, 15);
 }
 
 // ── Game class ───────────────────────────────────────────────────────────
@@ -215,7 +276,6 @@ export class DinoRunGame {
   private ctx: CanvasRenderingContext2D;
   private initialDifficultyKey: DifficultyKey;
   private onGameEnd: (result: GameEndResult) => void;
-
   private sm: StateMachine;
   private keys: Record<string, boolean> = {};
   private _destroyed = false;
@@ -243,12 +303,11 @@ export class DinoRunGame {
   private _onKeyDown: (e: KeyboardEvent) => void;
   private _onKeyUp: (e: KeyboardEvent) => void;
   private _onMouseDown: () => void;
-  private _onMvSquat: () => void; // MediaPipe: squat = jump
-  private _onMvCalibrated: () => void; // MediaPipe: calibrated = start game
+  private _onMvSquat: () => void;
+  private _onMvCalibrated: () => void;
 
   constructor(opts: DinoRunGameOptions) {
     if (!opts.canvas) throw new Error('DinoRunGame requires opts.canvas');
-
     this.canvas = opts.canvas;
     this.canvas.width = W;
     this.canvas.height = H;
@@ -270,20 +329,25 @@ export class DinoRunGame {
     this._onKeyDown = (e) => this.handleKeyDown(e);
     this._onKeyUp   = (e) => { this.keys[e.code] = false; };
     this._onMouseDown = () => {};
-    // MediaPipe: squat = jump
+
     this._onMvSquat = () => {
-      if (this.sm.is('ACTIVE')) this.handleJump();
+      console.log('[Game] Squat event received, current state:', this.sm.current);
+      if (this.sm.is('IDLE'))      { this.sm.transition('CALIBRATING'); return; }
+      if (this.sm.is('GAME_OVER')) { this.restart(); return; }
+      if (this.sm.is('WIN'))       { this.restart(); return; }
+      if (this.sm.is('ACTIVE'))    { this.handleJump(); }
     };
-    // MediaPipe: calibrated = start game
+
     this._onMvCalibrated = () => {
       if (this.sm.is('CALIBRATING')) this.sm.transition('ACTIVE');
-  };
+    };
 
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
     this.canvas.addEventListener('mousedown', this._onMouseDown);
     window.addEventListener('mv:squat:start', this._onMvSquat);
     window.addEventListener('mv:calibrated', this._onMvCalibrated);
+
     this.reset();
     this.onIdle();
     this.lastTime = performance.now();
@@ -291,18 +355,17 @@ export class DinoRunGame {
   }
 
   private reset(): void {
-    this.dino = { x: 80, y: 0, w: 40, h: 36, vy: 0, frame: 0, frameTimer: 0, ducking: false, dead: false };
+    // Dino is 88px wide, 100px tall at hi-res
+    this.dino = { x: 100, y: 0, w: 88, h: 100, vy: 0, frame: 0, frameTimer: 0, ducking: false, dead: false };
     this.dinoGroundY = GROUND_Y - this.dino.h;
     this.dino.y = this.dinoGroundY;
-
     this.obstacles = [];
     this.clouds = [];
-    for (let i = 0; i < 4; i++) this.spawnCloud(rand(0, W));
+    for (let i = 0; i < 5; i++) this.spawnCloud(rand(0, W));
     this.stars = [];
-    for (let i = 0; i < 40; i++) {
-      this.stars.push({ x: rand(0, W), y: rand(10, GROUND_Y - 80), size: randInt(1, 3), alpha: rand(0.2, 0.7) });
+    for (let i = 0; i < 60; i++) {
+      this.stars.push({ x: rand(0, W), y: rand(10, GROUND_Y - 120), size: randInt(1, 4), alpha: rand(0.2, 0.7) });
     }
-
     this.speed = INITIAL_SPEED;
     this.score = 0;
     this.jumpCount = 0;
@@ -315,45 +378,36 @@ export class DinoRunGame {
   }
 
   private spawnCloud(xOverride?: number): void {
-    this.clouds.push({ x: xOverride ?? W + 50, y: rand(30, 100), scrollSpeed: rand(0.3, 0.6), alpha: 0.6 });
+    this.clouds.push({ x: xOverride ?? W + 80, y: rand(40, 150), scrollSpeed: rand(0.3, 0.6), alpha: 0.6 });
   }
 
   private spawnObstacle(): void {
     if (!this.sm.is('ACTIVE')) return;
     const type = pick<CactusType>(['sm', 'sm', 'sm', 'sm', 'tall', 'tall', 'dbl']);
     const dims = cactusDims(type);
-    this.obstacles.push({ x: W + 30, type, w: dims.w, h: dims.h, scored: false });
-    const delay = this.difficulty?.obstacleDelay ?? 3000;
+    this.obstacles.push({ x: W + 40, type, w: dims.w, h: dims.h, scored: false });
+    const delay = this.difficulty?.obstacleDelay ?? 5000;
     this.obstacleTimerId = setTimeout(() => this.spawnObstacle(), delay);
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
-  // Only mediapipe works for scoring now!
-  // P key toggles pause/resume
-  if (e.code === 'KeyP') {
-    if (this.sm.is('ACTIVE')) this.sm.transition('PAUSED');
-    else if (this.sm.is('PAUSED')) this.sm.transition('ACTIVE');
-  }
-
-  // Space/Up only allowed for non-jump state transitions
-  // (starting the game, retrying after game over/win)
-  // NOT for jumping during ACTIVE — that requires a real squat via MediaPipe
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
-    e.preventDefault();
-    const S = StateMachine.STATES;
-    if (this.sm.is(S.IDLE))      { this.sm.transition('CALIBRATING'); return; }
-    if (this.sm.is(S.GAME_OVER)) { this.restart(); return; }
-    if (this.sm.is(S.WIN))       { this.restart(); return; }
+    if (e.code === 'KeyP') {
+      if (this.sm.is('ACTIVE')) this.sm.transition('PAUSED');
+      else if (this.sm.is('PAUSED')) this.sm.transition('ACTIVE');
+    }
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+      e.preventDefault();
+      const S = StateMachine.STATES;
+      if (this.sm.is(S.IDLE))      { this.sm.transition('CALIBRATING'); return; }
+      if (this.sm.is(S.GAME_OVER)) { this.restart(); return; }
+      if (this.sm.is(S.WIN))       { this.restart(); return; }
     }
   }
 
   private handleJump(): void {
-    if (this.sm.is('IDLE'))      { this.sm.transition('CALIBRATING'); return; }
-    if (this.sm.is('GAME_OVER')) { this.restart(); return; }
-    if (this.sm.is('WIN'))       { this.restart(); return; }
-    if (!this.sm.is('ACTIVE'))   return;
-
+    if (!this.sm.is('ACTIVE')) return;
     const onGround = Math.abs(this.dino.y - this.dinoGroundY) < 4;
+    console.log('[Jump] y:', this.dino.y, 'groundY:', this.dinoGroundY, 'onGround:', onGround);
     if (onGround) {
       this.jumpCount = 1;
       this.dino.vy = JUMP_VEL;
@@ -363,29 +417,21 @@ export class DinoRunGame {
     }
   }
 
-  /** Change difficulty from outside. Only takes effect while in IDLE. */
   setDifficulty(key: DifficultyKey): void {
     this.initialDifficultyKey = key;
     if (this.sm.is('IDLE')) this.difficulty = DIFFICULTIES[key] ?? DIFFICULTIES.medium;
   }
 
   private restart(): void { this.reset(); this.sm.transition('IDLE'); }
-
-  private die(): void {
-    if (!this.sm.is('ACTIVE')) return;
-    this.sm.transition('GAME_OVER');
-  }
-
-  private onIdle(): void {
-    this.difficulty = DIFFICULTIES[this.initialDifficultyKey] ?? DIFFICULTIES.medium;
-  }
+  private die(): void { if (!this.sm.is('ACTIVE')) return; this.sm.transition('GAME_OVER'); }
+  private onIdle(): void { this.difficulty = DIFFICULTIES[this.initialDifficultyKey] ?? DIFFICULTIES.medium; }
 
   private onCalibrating(): void {
     if (!this.difficulty) return;
     this.speed = this.difficulty.speed;
     this.calibratingTimeoutId = setTimeout(() => {
       if (this.sm.is('CALIBRATING')) this.sm.transition('ACTIVE');
-    }, 1000);
+    }, 5000);
   }
 
   private onActive(): void {
@@ -424,12 +470,13 @@ export class DinoRunGame {
   private update(dt: number): void {
     this.dino.ducking = !!this.keys.down && this.sm.is('ACTIVE') &&
                          Math.abs(this.dino.y - this.dinoGroundY) < 4;
-
     if (!this.sm.is('ACTIVE')) return;
 
     this.dino.vy += GRAVITY * dt;
-    this.dino.y += this.dino.vy * dt;
-    if (this.dino.y >= this.dinoGroundY) { this.dino.y = this.dinoGroundY; this.dino.vy = 0; this.jumpCount = 0; }
+    this.dino.y  += this.dino.vy * dt;
+    if (this.dino.y >= this.dinoGroundY) {
+      this.dino.y = this.dinoGroundY; this.dino.vy = 0; this.jumpCount = 0;
+    }
 
     this.dino.frameTimer += dt;
     if (this.dino.frameTimer > 0.12) { this.dino.frameTimer = 0; this.dino.frame = this.dino.frame === 0 ? 1 : 0; }
@@ -438,18 +485,19 @@ export class DinoRunGame {
     this.speed = Math.min(INITIAL_SPEED + this.distance * 0.04, MAX_SPEED);
 
     this.obstacles.forEach(o => { o.x -= this.speed * dt; });
-    this.obstacles = this.obstacles.filter(o => o.x > -60);
+    this.obstacles = this.obstacles.filter(o => o.x > -120);
 
     this.clouds.forEach(c => {
       c.x -= this.speed * c.scrollSpeed * dt;
-      if (c.x < -90) { c.x = W + 90; c.y = rand(30, 100); }
+      if (c.x < -130) { c.x = W + 130; c.y = rand(40, 150); }
     });
 
     this.stars.forEach(s => {
       s.x -= 30 * dt;
-      if (s.x < 0) { s.x = W; s.y = rand(10, GROUND_Y - 80); }
+      if (s.x < 0) { s.x = W; s.y = rand(10, GROUND_Y - 120); }
     });
 
+    // Scoring
     const dinoLeft = this.dino.x;
     this.obstacles.forEach(o => {
       if (!o.scored && (o.x + o.w) < dinoLeft) { o.scored = true; this.score += 1; }
@@ -457,15 +505,13 @@ export class DinoRunGame {
 
     if (this.difficulty && this.score >= this.difficulty.repGoal) { this.sm.transition('WIN'); return; }
 
-    const dpad = 6;
+    // Collision (AABB, inset for fairness)
+    const dpad = 10;
     const dx = this.dino.x + dpad, dy = this.dino.y + dpad;
-    const dw = this.dino.w - dpad * 2, dh = (this.dino.ducking ? 32 : this.dino.h) - dpad * 2;
+    const dw = this.dino.w - dpad * 2, dh = (this.dino.ducking ? 60 : this.dino.h) - dpad * 2;
     for (const o of this.obstacles) {
       const ox = o.x, oy = GROUND_Y - o.h, ow = o.w, oh = o.h;
-      if (dx < ox + ow && dx + dw > ox && dy < oy + oh && dy + dh > oy) {
-        this.die();
-        break;
-      }
+      if (dx < ox + ow && dx + dw > ox && dy < oy + oh && dy + dh > oy) { this.die(); break; }
     }
 
     this.sessionTime += dt;
@@ -473,7 +519,6 @@ export class DinoRunGame {
 
   private render(): void {
     const ctx = this.ctx;
-
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, H);
 
@@ -490,44 +535,49 @@ export class DinoRunGame {
     });
     ctx.globalAlpha = 1;
 
-    drawRect(ctx, 0, H - 8, W, 8, C.ground);
+    // Ground with top highlight
+    drawRect(ctx, 0, H - 12, W, 12, C.ground);
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(0, H - 12, W, 2);
 
     this.obstacles.forEach(o => drawCactus(ctx, o.x, GROUND_Y, o.type));
 
-    const dy = this.dino.ducking ? GROUND_Y - 32 : this.dino.y;
-    drawDino(ctx, this.dino.x, dy, this.dino.frame, this.dino.ducking, this.dino.dead);
+    const dinoY = this.dino.ducking ? GROUND_Y - 48 : this.dino.y;
+    drawDino(ctx, this.dino.x, dinoY, this.dino.frame, this.dino.ducking, this.dino.dead);
 
-    drawText(ctx, `REPS: ${this.score}`, W / 2, 20, 24, '#94a3b8', 'center', 'top');
-    drawText(ctx, `SCORE: ${this.score * 100}`, W - 20, 20, 14, '#94a3b8', 'right', 'top');
+    drawText(ctx, `REPS: ${this.score}`,        W / 2,   24, 32, '#94a3b8', 'center', 'top');
 
-    if (this.sm.is('IDLE')) this.renderIdle();
+    if (this.sm.is('IDLE'))      this.renderIdle();
     if (this.sm.is('CALIBRATING')) this.renderCalibrating();
-    if (this.sm.is('PAUSED')) this.renderPaused();
+    if (this.sm.is('PAUSED'))    this.renderPaused();
     if (this.sm.is('GAME_OVER')) this.renderGameOver();
-    if (this.sm.is('WIN')) this.renderWin();
+    if (this.sm.is('WIN'))       this.renderWin();
   }
 
   private renderIdle(): void {
     const ctx = this.ctx;
-    drawRect(ctx, W/2 - 170, H/2 - 60, 340, 100, 'rgba(30,41,59,0.95)', C.dino, 2);
-    drawText(ctx, 'DINO RUN', W/2, H/2 - 30, 24, '#38bdf8', 'center', 'middle');
-    drawText(ctx, 'SPACE TO START', W/2, H/2 + 10, 10, '#94a3b8', 'center', 'middle');
+    drawRect(ctx, W/2 - 220, H/2 - 70, 440, 120, 'rgba(30,41,59,0.95)', C.dino, 2);
+    drawText(ctx, 'DINO RUN',       W/2, H/2 - 36, 32, '#38bdf8', 'center', 'middle');
+    drawText(ctx, 'SQUAT TO START', W/2, H/2 + 16, 14, '#94a3b8', 'center', 'middle');
   }
 
   private renderCalibrating(): void {
-    drawText(this.ctx, 'GET READY...', W/2, H/2, 16, '#94a3b8', 'center', 'middle');
+    const ctx = this.ctx;
+    drawRect(ctx, W/2 - 220, H/2 - 50, 440, 90, 'rgba(15,23,42,0.95)', '#38bdf8', 2);
+    drawText(ctx, 'STAND STILL...', W/2, H/2 - 10, 18, '#94a3b8', 'center', 'middle');
+    drawText(ctx, 'CALIBRATING',    W/2, H/2 + 18, 14, '#475569', 'center', 'middle');
   }
 
   private renderPaused(): void {
     const ctx = this.ctx;
-    drawRect(ctx, W/2 - 110, H/2 - 40, 220, 80, 'rgba(30,41,59,0.97)', '#fbbf24', 2);
-    drawText(ctx, 'PAUSED', W/2, H/2 - 10, 18, '#fbbf24', 'center', 'middle');
-    drawText(ctx, 'PRESS P TO RESUME', W/2, H/2 + 16, 9, '#94a3b8', 'center', 'middle');
+    drawRect(ctx, W/2 - 160, H/2 - 55, 320, 110, 'rgba(30,41,59,0.97)', '#fbbf24', 2);
+    drawText(ctx, 'PAUSED',          W/2, H/2 - 14, 26, '#fbbf24', 'center', 'middle');
+    drawText(ctx, 'PRESS P TO RESUME', W/2, H/2 + 22, 12, '#94a3b8', 'center', 'middle');
   }
 
   private scoreBreakdown(): ScoreBreakdown {
-    const repStreak = Math.max(1, this.score * 0.1);
-    const timeMult = Math.pow(1.1, Math.floor(this.sessionTime) * 0.1);
+    const repStreak  = Math.max(1, this.score * 0.1);
+    const timeMult   = Math.pow(1.1, Math.floor(this.sessionTime) * 0.1);
     const finalScore = Math.round(this.score * 100 * repStreak * timeMult);
     return { repStreak, timeMult, finalScore, secs: Math.floor(this.sessionTime) };
   }
@@ -535,64 +585,63 @@ export class DinoRunGame {
   private renderGameOver(): void {
     const ctx = this.ctx;
     const { repStreak, timeMult, finalScore, secs } = this.scoreBreakdown();
-    drawRect(ctx, W/2 - 210, H/2 - 110, 420, 220, 'rgba(15,23,42,0.97)', '#e74c3c', 2);
-    drawText(ctx, 'GAME OVER', W/2, H/2 - 88, 18, '#e74c3c', 'center', 'middle');
+    drawRect(ctx, W/2 - 280, H/2 - 150, 560, 300, 'rgba(15,23,42,0.97)', '#e74c3c', 2);
+    drawText(ctx, 'GAME OVER', W/2, H/2 - 120, 26, '#e74c3c', 'center', 'middle');
 
-    drawText(ctx, 'Base Score', W/2 - 100, H/2 - 52, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `${this.score * 100}`, W/2 + 100, H/2 - 52, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, 'Base Score',           W/2 - 140, H/2 - 72, 13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `${this.score * 100}`,  W/2 + 140, H/2 - 72, 13, '#e2e8f0', 'right', 'middle');
 
-    drawText(ctx, `Rep Streak (${this.score})`, W/2 - 100, H/2 - 24, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `x${repStreak.toFixed(1)}`, W/2 + 100, H/2 - 24, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, `Rep Streak (${this.score} reps)`, W/2 - 140, H/2 - 36, 13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `x${repStreak.toFixed(1)}`,        W/2 + 140, H/2 - 36, 13, '#e2e8f0', 'right', 'middle');
 
-    drawText(ctx, `Game Time (${secs}s)`, W/2 - 100, H/2 + 4, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `x${timeMult.toFixed(2)}`, W/2 + 100, H/2 + 4, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, `Game Time (${secs}s)`, W/2 - 140, H/2,       13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `x${timeMult.toFixed(2)}`,         W/2 + 140, H/2,       13, '#e2e8f0', 'right', 'middle');
 
-    ctx.strokeStyle = '#334155'; ctx.beginPath();
-    ctx.moveTo(W/2 - 180, H/2 + 26); ctx.lineTo(W/2 + 180, H/2 + 26); ctx.stroke();
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(W/2 - 240, H/2 + 30); ctx.lineTo(W/2 + 240, H/2 + 30); ctx.stroke();
 
-    drawText(ctx, 'FINAL SCORE', W/2 - 100, H/2 + 48, 10, '#38bdf8', 'left', 'middle');
-    drawText(ctx, `${finalScore}`, W/2 + 100, H/2 + 48, 10, '#38bdf8', 'right', 'middle');
+    drawText(ctx, 'FINAL SCORE',   W/2 - 140, H/2 + 64,  15, '#38bdf8', 'left',  'middle');
+    drawText(ctx, `${finalScore}`, W/2 + 140, H/2 + 64,  15, '#38bdf8', 'right', 'middle');
 
-    drawText(ctx, 'PRESS SPACE TO RETRY', W/2, H/2 + 82, 9, '#475569', 'center', 'middle');
+    drawText(ctx, 'SQUAT TO RETRY', W/2, H/2 + 110, 13, '#475569', 'center', 'middle');
   }
 
   private renderWin(): void {
     const ctx = this.ctx;
     const { repStreak, timeMult, finalScore, secs } = this.scoreBreakdown();
     const diffLabel = this.difficulty?.label ?? 'Unknown';
-    drawRect(ctx, W/2 - 210, H/2 - 120, 420, 240, 'rgba(15,23,42,0.97)', '#4ade80', 2);
-    drawText(ctx, 'YOU WIN!', W/2, H/2 - 96, 18, '#4ade80', 'center', 'middle');
-    drawText(ctx, `Difficulty: ${diffLabel}`, W/2, H/2 - 66, 8, '#475569', 'center', 'middle');
+    drawRect(ctx, W/2 - 280, H/2 - 165, 560, 330, 'rgba(15,23,42,0.97)', '#4ade80', 2);
+    drawText(ctx, 'YOU WIN!',           W/2, H/2 - 132, 26, '#4ade80', 'center', 'middle');
+    drawText(ctx, `Difficulty: ${diffLabel}`, W/2, H/2 - 96, 12, '#475569', 'center', 'middle');
 
-    drawText(ctx, 'Base Score', W/2 - 100, H/2 - 36, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `${this.score * 100}`, W/2 + 100, H/2 - 36, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, 'Base Score',           W/2 - 140, H/2 - 60, 13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `${this.score * 100}`,  W/2 + 140, H/2 - 60, 13, '#e2e8f0', 'right', 'middle');
 
-    drawText(ctx, `Rep Streak (${this.score})`, W/2 - 100, H/2 - 8, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `x${repStreak.toFixed(1)}`, W/2 + 100, H/2 - 8, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, `Rep Streak (${this.score} reps)`, W/2 - 140, H/2 - 24, 13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `x${repStreak.toFixed(1)}`,        W/2 + 140, H/2 - 24, 13, '#e2e8f0', 'right', 'middle');
 
-    drawText(ctx, `Game Time (${secs}s)`, W/2 - 100, H/2 + 20, 9, '#94a3b8', 'left', 'middle');
-    drawText(ctx, `x${timeMult.toFixed(2)}`, W/2 + 100, H/2 + 20, 9, '#e2e8f0', 'right', 'middle');
+    drawText(ctx, `Game Time (${secs}s)`, W/2 - 140, H/2 + 12, 13, '#94a3b8', 'left',  'middle');
+    drawText(ctx, `x${timeMult.toFixed(2)}`,         W/2 + 140, H/2 + 12, 13, '#e2e8f0', 'right', 'middle');
 
-    ctx.strokeStyle = '#334155'; ctx.beginPath();
-    ctx.moveTo(W/2 - 180, H/2 + 42); ctx.lineTo(W/2 + 180, H/2 + 42); ctx.stroke();
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(W/2 - 240, H/2 + 42); ctx.lineTo(W/2 + 240, H/2 + 42); ctx.stroke();
 
-    drawText(ctx, 'FINAL SCORE', W/2 - 100, H/2 + 62, 10, '#4ade80', 'left', 'middle');
-    drawText(ctx, `${finalScore}`, W/2 + 100, H/2 + 62, 10, '#4ade80', 'right', 'middle');
+    drawText(ctx, 'FINAL SCORE',   W/2 - 140, H/2 + 78,  15, '#4ade80', 'left',  'middle');
+    drawText(ctx, `${finalScore}`, W/2 + 140, H/2 + 78,  15, '#4ade80', 'right', 'middle');
 
-    drawText(ctx, 'PRESS SPACE TO PLAY AGAIN', W/2, H/2 + 96, 9, '#475569', 'center', 'middle');
+    drawText(ctx, 'SQUAT TO PLAY AGAIN', W/2, H/2 + 124, 13, '#475569', 'center', 'middle');
   }
 
-  /** Stop the game loop and remove all listeners/timers. Call on component unmount. */
   destroy(): void {
     this._destroyed = true;
     if (this._rafId !== null) cancelAnimationFrame(this._rafId);
-    if (this.obstacleTimerId) clearTimeout(this.obstacleTimerId);
-    if (this.cloudTimerId) clearInterval(this.cloudTimerId);
+    if (this.obstacleTimerId)      clearTimeout(this.obstacleTimerId);
+    if (this.cloudTimerId)         clearInterval(this.cloudTimerId);
     if (this.calibratingTimeoutId) clearTimeout(this.calibratingTimeoutId);
-    window.removeEventListener('keydown', this._onKeyDown);
-    window.removeEventListener('keyup', this._onKeyUp);
+    window.removeEventListener('keydown',        this._onKeyDown);
+    window.removeEventListener('keyup',          this._onKeyUp);
     this.canvas.removeEventListener('mousedown', this._onMouseDown);
     window.removeEventListener('mv:squat:start', this._onMvSquat);
-    window.removeEventListener('mv:calibrated', this._onMvCalibrated);
+    window.removeEventListener('mv:calibrated',  this._onMvCalibrated);
   }
 }
