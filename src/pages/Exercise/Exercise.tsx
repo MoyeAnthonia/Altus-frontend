@@ -98,6 +98,15 @@ function ExercisePage() {
 
   const allReady = checkItems.every((c) => c.status === "ok");
 
+  // Auto-advance to the game once every check is OK — the user is mid-squat
+  // at this point and can't reach for a mouse to click "Start". Debounced
+  // so a one-frame flicker in pose detection doesn't trigger it early.
+  useEffect(() => {
+    if (!allReady || hasStarted) return;
+    const timer = setTimeout(() => setHasStarted(true), 1000);
+    return () => clearTimeout(timer);
+  }, [allReady, hasStarted]);
+
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
