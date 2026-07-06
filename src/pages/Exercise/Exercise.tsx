@@ -17,6 +17,7 @@ const checkItems: CheckItem[] = [
   { id: "camera", label: "Camera Detected", status: "pending" },
   { id: "lighting", label: "Good Lighting", status: "checking" },
   { id: "body", label: "Body in Frame", status: "checking" },
+  { id: "calibration", label: "Calibration Complete", status: "checking" },
 ];
 
 function ExercisePage() {
@@ -26,7 +27,8 @@ function ExercisePage() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  useMediaPipe({ enabled: cameraEnabled });
+  const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
+
 
   const openCamera = async () => {
     try {
@@ -78,6 +80,17 @@ function ExercisePage() {
               </div>
             ))}
 
+            <div className={styles.csCheckItem}>
+              <div className={styles.csCheckLeft}>
+                <span
+                  className={styles.csCheckLabel}
+                  style={{ color: isCalibrated ? '#4ade80' : '#94a3b8' }}
+                >
+                  {isCalibrated ? '✓ MediaPipe Calibrated' : '⏳ MediaPipe Calibrating...'}
+                </span>
+              </div>
+            </div>
+            
             <p className={styles.csStatusText}>Preparing detection…</p>
 
             <button

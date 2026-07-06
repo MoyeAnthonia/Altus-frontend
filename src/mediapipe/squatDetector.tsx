@@ -31,9 +31,9 @@ const SQUAT_CONFIRM_FRAMES = 3;
 // Minimum ms between squat triggers
 const SQUAT_COOLDOWN_MS = 600;
 
-// Frames to collect for the standing baseline (~1 second at 30fps)
+// Frames to collect for the standing baseline (~5 seconds at 30fps)
 // Player must stand still during this time
-const CALIBRATION_FRAMES = 30;
+const CALIBRATION_FRAMES = 150;
 
 let baselineY: number = 0; // standing hip Y, set after calibration
 const calibrationSamples: number[] = []; // hip Y readings collected during calibration
