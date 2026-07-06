@@ -550,8 +550,6 @@ export class DinoRunGame {
     if (this.sm.is('IDLE'))      this.renderIdle();
     if (this.sm.is('CALIBRATING')) this.renderCalibrating();
     if (this.sm.is('PAUSED'))    this.renderPaused();
-    if (this.sm.is('GAME_OVER')) this.renderGameOver();
-    if (this.sm.is('WIN'))       this.renderWin();
   }
 
   private renderIdle(): void {
@@ -580,56 +578,6 @@ export class DinoRunGame {
     const timeMult   = Math.pow(1.1, Math.floor(this.sessionTime) * 0.1);
     const finalScore = Math.round(this.score * 100 * repStreak * timeMult);
     return { repStreak, timeMult, finalScore, secs: Math.floor(this.sessionTime) };
-  }
-
-  private renderGameOver(): void {
-    const ctx = this.ctx;
-    const { repStreak, timeMult, finalScore, secs } = this.scoreBreakdown();
-    drawRect(ctx, W/2 - 280, H/2 - 150, 560, 300, 'rgba(15,23,42,0.97)', '#e74c3c', 2);
-    drawText(ctx, 'GAME OVER', W/2, H/2 - 120, 26, '#e74c3c', 'center', 'middle');
-
-    drawText(ctx, 'Base Score',           W/2 - 140, H/2 - 72, 13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `${this.score * 100}`,  W/2 + 140, H/2 - 72, 13, '#e2e8f0', 'right', 'middle');
-
-    drawText(ctx, `Rep Streak (${this.score} reps)`, W/2 - 140, H/2 - 36, 13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `x${repStreak.toFixed(1)}`,        W/2 + 140, H/2 - 36, 13, '#e2e8f0', 'right', 'middle');
-
-    drawText(ctx, `Game Time (${secs}s)`, W/2 - 140, H/2,       13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `x${timeMult.toFixed(2)}`,         W/2 + 140, H/2,       13, '#e2e8f0', 'right', 'middle');
-
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath();
-    ctx.moveTo(W/2 - 240, H/2 + 30); ctx.lineTo(W/2 + 240, H/2 + 30); ctx.stroke();
-
-    drawText(ctx, 'FINAL SCORE',   W/2 - 140, H/2 + 64,  15, '#38bdf8', 'left',  'middle');
-    drawText(ctx, `${finalScore}`, W/2 + 140, H/2 + 64,  15, '#38bdf8', 'right', 'middle');
-
-    drawText(ctx, 'SQUAT TO RETRY', W/2, H/2 + 110, 13, '#475569', 'center', 'middle');
-  }
-
-  private renderWin(): void {
-    const ctx = this.ctx;
-    const { repStreak, timeMult, finalScore, secs } = this.scoreBreakdown();
-    const diffLabel = this.difficulty?.label ?? 'Unknown';
-    drawRect(ctx, W/2 - 280, H/2 - 165, 560, 330, 'rgba(15,23,42,0.97)', '#4ade80', 2);
-    drawText(ctx, 'YOU WIN!',           W/2, H/2 - 132, 26, '#4ade80', 'center', 'middle');
-    drawText(ctx, `Difficulty: ${diffLabel}`, W/2, H/2 - 96, 12, '#475569', 'center', 'middle');
-
-    drawText(ctx, 'Base Score',           W/2 - 140, H/2 - 60, 13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `${this.score * 100}`,  W/2 + 140, H/2 - 60, 13, '#e2e8f0', 'right', 'middle');
-
-    drawText(ctx, `Rep Streak (${this.score} reps)`, W/2 - 140, H/2 - 24, 13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `x${repStreak.toFixed(1)}`,        W/2 + 140, H/2 - 24, 13, '#e2e8f0', 'right', 'middle');
-
-    drawText(ctx, `Game Time (${secs}s)`, W/2 - 140, H/2 + 12, 13, '#94a3b8', 'left',  'middle');
-    drawText(ctx, `x${timeMult.toFixed(2)}`,         W/2 + 140, H/2 + 12, 13, '#e2e8f0', 'right', 'middle');
-
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath();
-    ctx.moveTo(W/2 - 240, H/2 + 42); ctx.lineTo(W/2 + 240, H/2 + 42); ctx.stroke();
-
-    drawText(ctx, 'FINAL SCORE',   W/2 - 140, H/2 + 78,  15, '#4ade80', 'left',  'middle');
-    drawText(ctx, `${finalScore}`, W/2 + 140, H/2 + 78,  15, '#4ade80', 'right', 'middle');
-
-    drawText(ctx, 'SQUAT TO PLAY AGAIN', W/2, H/2 + 124, 13, '#475569', 'center', 'middle');
   }
 
   destroy(): void {
