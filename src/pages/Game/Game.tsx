@@ -35,6 +35,9 @@ function GamePage() {
         onGameEnd: (result: GameEndResult) => {
           setGameResult(result);
         },
+          onGameStart: () => {
+            setGameResult(null);
+          },
       });
     };
 

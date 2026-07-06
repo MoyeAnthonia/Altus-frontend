@@ -2,10 +2,10 @@
 
 const W = 1200, H = 620;
 const GROUND_Y = H - 12;
-const GRAVITY = 2200;
-const JUMP_VEL = -900;
+const GRAVITY = 1700;
+const JUMP_VEL = -1200;
 const INITIAL_SPEED = 420;
-const MAX_SPEED = 1100;
+const MAX_SPEED = 420;
 const FONT = '"Press Start 2P", monospace';
 
 const C = {
@@ -48,6 +48,7 @@ export interface DinoRunGameOptions {
   canvas: HTMLCanvasElement;
   difficulty?: DifficultyKey;
   onGameEnd?: (result: GameEndResult) => void;
+  onGameStart?: () => void;
 }
 
 // ── State machine ────────────────────────────────────────────────────────
@@ -84,10 +85,10 @@ class StateMachine {
 }
 
 export const DIFFICULTIES: Record<DifficultyKey, DifficultyConfig> = {
-  easy:         { label: 'Easy',         repGoal: 10,       speed: 420, obstacleDelay: 5000, color: '#4ade80' },
-  medium:       { label: 'Medium',       repGoal: 20,       speed: 420, obstacleDelay: 5000, color: '#38bdf8' },
-  hard:         { label: 'Hard',         repGoal: 40,       speed: 420, obstacleDelay: 5000, color: '#fbbf24' },
-  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 420, obstacleDelay: 5000, color: '#e74c3c' },
+  easy:         { label: 'Easy',         repGoal: 10,       speed: 420, obstacleDelay: 4000, color: '#4ade80' },
+  medium:       { label: 'Medium',       repGoal: 20,       speed: 420, obstacleDelay: 4000, color: '#38bdf8' },
+  hard:         { label: 'Hard',         repGoal: 40,       speed: 420, obstacleDelay: 4000, color: '#fbbf24' },
+  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 420, obstacleDelay: 4000, color: '#e74c3c' },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -276,6 +277,7 @@ export class DinoRunGame {
   private ctx: CanvasRenderingContext2D;
   private initialDifficultyKey: DifficultyKey;
   private onGameEnd: (result: GameEndResult) => void;
+  private onGameStart: () => void;
   private sm: StateMachine;
   private keys: Record<string, boolean> = {};
   private _destroyed = false;
@@ -317,6 +319,7 @@ export class DinoRunGame {
 
     this.initialDifficultyKey = opts.difficulty ?? 'medium';
     this.onGameEnd = opts.onGameEnd ?? (() => {});
+    this.onGameStart = opts.onGameStart ?? (() => {});
 
     this.sm = new StateMachine('IDLE');
     this.sm.on('CALIBRATING', () => this.onCalibrating());
@@ -435,6 +438,7 @@ export class DinoRunGame {
   }
 
   private onActive(): void {
+    this.onGameStart();
     if (!this.obstacleTimerId) this.spawnObstacle();
     if (!this.cloudTimerId) this.cloudTimerId = setInterval(() => this.spawnCloud(), 3500);
   }
