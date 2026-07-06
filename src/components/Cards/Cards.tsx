@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject, HTMLAttributes } from "react";
 import { useNavigate } from "react-router";
 import styles from "./Cards.module.css";
+import { useAuth } from "../../context/useAuth";
 
 export interface FeatureCardProps extends HTMLAttributes<HTMLDivElement> {
   icon: ReactNode;
@@ -100,6 +101,11 @@ function GameCard({
     nav("/level");
   };
 
+  const navLogin = () => {
+    nav("/login");
+  };
+  const { isAuthenticated } = useAuth();
+
   const cardClass = [styles.gameCard, disabled && styles.gameCardDisabled, className]
     .filter(Boolean)
     .join(" ");
@@ -111,26 +117,51 @@ function GameCard({
       <h3 className={styles.gameTitle}>{title}</h3>
       <p className={styles.gameExercise}>{exercise}</p>
       <p className={styles.gameDesc}>{description}</p>
-      <button
-        type="button"
-        className={styles.playBtn}
-        onClick={gameNavigate}
-        disabled={disabled}
-        aria-disabled={disabled}
-      >
-        {ctaLabel}
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+      {isAuthenticated ? (
+        <>
+          <button
+            type="button"
+            className={styles.playBtn}
+            onClick={gameNavigate}
+            disabled={disabled}
+            aria-disabled={disabled}
+          >
+            {ctaLabel}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          className={styles.playBtn}
+          onClick={navLogin}
+          disabled={disabled}
+          aria-disabled={disabled}
         >
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
-      </button>
+          {ctaLabel}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      )}
     </article>
   );
 }
