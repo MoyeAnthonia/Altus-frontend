@@ -37,13 +37,23 @@
 
 /* ── TWO-COLUMN ARENA ── */
 .gphArena {
+  position: relative; /* anchor for absolutely-positioned overlays */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   flex: 1;
   min-height: 0;
   padding: 0 40px 40px;
-  align-items: start;
+  align-items: stretch; /* both columns fill the same row height */
+}
+
+/* Motion card fills its column height instead of forcing its own 16/10
+   ratio — this is what lets it bottom-align with the right column.
+   .gphArena prefix = higher specificity than .mcCard in Cards.module.css */
+.gphArena .gphMotion {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 320px;
 }
 
 /* ── RIGHT COLUMN: game panel + secondary back button ── */
@@ -53,11 +63,13 @@
   align-items: center;
   gap: 14px;
   width: 100%;
+  height: 100%; /* fill the stretched grid row */
 }
 
 .gphGame {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  flex: 1; /* take all column height left over by the back button */
+  min-height: 320px;
   background: var(--bg-game);
   border: 1.5px solid rgba(56, 225, 255, 0.2);
   border-radius: 14px;
@@ -97,6 +109,21 @@
     grid-template-columns: 1fr;
     padding: 0 20px 32px;
     gap: 20px;
+  }
+  /* Single column: each panel sizes itself again, otherwise
+     height: 100% has nothing to stretch against */
+  .gphArena .gphMotion {
+    aspect-ratio: 16 / 10;
+    height: auto;
+    min-height: 0;
+  }
+  .gphGameCol {
+    height: auto;
+  }
+  .gphGame {
+    flex: none;
+    aspect-ratio: 16 / 10;
+    min-height: 0;
   }
 }
 
@@ -157,7 +184,7 @@
 
 .csCheckLabel {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.1em;
   color: #fff;
 }

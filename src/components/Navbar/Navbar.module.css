@@ -7,6 +7,14 @@
   justify-content: space-between;
   padding: 1rem 2rem;
   border-bottom: 2px solid #221b59;
+  transition: border-color 0.25s ease;
+}
+
+/* Scrolled away from the top: keep the 2px border for layout stability,
+   just make it invisible — swapping to border: none would make the page
+   content jump up by 2px every time the border toggles */
+.navbarScrolled {
+  border-bottom-color: transparent;
 }
 
 /* ---- Brand ---- */

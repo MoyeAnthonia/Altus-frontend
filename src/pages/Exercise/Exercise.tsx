@@ -39,7 +39,7 @@ function ExercisePage() {
   // Bumping this key remounts <GamePage />, giving us a fresh run on retry
   const [gameKey, setGameKey] = useState(0);
 
-  const { isReady } = useMediaPipe({ enabled: cameraEnabled });
+  const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
 
   // Read live pose landmarks to score "body in frame" and "good lighting"
   useEffect(() => {
@@ -82,17 +82,22 @@ function ExercisePage() {
     {
       id: "camera",
       label: "Camera Detected",
-      status: cameraFailed ? "fail" : isReady ? "ok" : cameraEnabled ? "checking" : "pending",
+      status: cameraFailed ? "fail" : isCalibrated ? "ok" : cameraEnabled ? "checking" : "pending",
     },
     {
       id: "lighting",
       label: "Good Lighting",
-      status: !isReady ? "pending" : !hasPose ? "checking" : goodLighting ? "ok" : "fail",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : goodLighting ? "ok" : "fail",
     },
     {
       id: "body",
       label: "Body in Frame",
-      status: !isReady ? "pending" : !hasPose ? "checking" : bodyInFrame ? "ok" : "fail",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : bodyInFrame ? "ok" : "fail",
+    },
+    {
+      id: "mediapipe",
+      label: "Pose Detection Ready",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : "ok",
     },
   ];
 
@@ -122,13 +127,13 @@ function ExercisePage() {
     }
   };
 
-  const gameNavigate = () => {
-    nav("/level");
+  const profileNavigate = () => {
+    nav("/profile");
   };
 
   const handlePlayAgain = () => {
     setGameOverStats(null);
-    setGameKey((k) => k + 1); // fresh mount = fresh game state
+    setGameKey((k: number) => k + 1); // fresh mount = fresh game state
   };
 
   const handleGoToDashboard = () => {
@@ -144,7 +149,12 @@ function ExercisePage() {
       </header>
 
       <div className={styles.gphArena}>
-        <MotionCard videoRef={videoRef} label="Squat Detection" showGuide={!isCameraOpen}>
+        <MotionCard
+          videoRef={videoRef}
+          label="Squat Detection"
+          showGuide={!isCameraOpen}
+          className={styles.gphMotion}
+        >
           {!isCameraOpen && <Button label="Open Camera" onClick={openCamera} />}
           {isCameraOpen && (
             <canvas
@@ -178,6 +188,17 @@ function ExercisePage() {
               </div>
             ))}
 
+            <div className={styles.csCheckItem}>
+              <div className={styles.csCheckLeft}>
+                <span
+                  className={styles.csCheckLabel}
+                  style={{ color: isCalibrated ? "#4ade80" : "#94a3b8" }}
+                >
+                  {isCalibrated ? "✓ MediaPipe Calibrated" : "⏳ MediaPipe Calibrating..."}
+                </span>
+              </div>
+            </div>
+
             <p className={styles.csStatusText}>
               {allReady ? "All set - you're ready to go!" : "Preparing detection…"}
             </p>
@@ -206,8 +227,8 @@ function ExercisePage() {
                 onDashboard={handleGoToDashboard}
               />
             </div>
-            <button className={styles.gphGameBackBtn} onClick={gameNavigate}>
-              ← Back to difficulty select
+            <button className={styles.gphGameBackBtn} onClick={profileNavigate}>
+              Go To Dashboard →
             </button>
           </div>
         )}
