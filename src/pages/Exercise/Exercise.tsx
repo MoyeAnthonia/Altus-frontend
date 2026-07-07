@@ -39,7 +39,7 @@ function ExercisePage() {
   // Bumping this key remounts <GamePage />, giving us a fresh run on retry
   const [gameKey, setGameKey] = useState(0);
 
-  const { isReady } = useMediaPipe({ enabled: cameraEnabled });
+  const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
 
   // Read live pose landmarks to score "body in frame" and "good lighting"
   useEffect(() => {
@@ -82,18 +82,23 @@ function ExercisePage() {
     {
       id: "camera",
       label: "Camera Detected",
-      status: cameraFailed ? "fail" : isReady ? "ok" : cameraEnabled ? "checking" : "pending",
+      status: cameraFailed ? "fail" : isCalibrated ? "ok" : cameraEnabled ? "checking" : "pending",
     },
     {
       id: "lighting",
       label: "Good Lighting",
-      status: !isReady ? "pending" : !hasPose ? "checking" : goodLighting ? "ok" : "fail",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : goodLighting ? "ok" : "fail",
     },
     {
       id: "body",
       label: "Body in Frame",
-      status: !isReady ? "pending" : !hasPose ? "checking" : bodyInFrame ? "ok" : "fail",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : bodyInFrame ? "ok" : "fail",
     },
+    {
+      id: "mediapipe",
+      label: "Pose Detection Ready",
+      status: !isCalibrated ? "pending" : !hasPose ? "checking" : "ok",
+    }
   ];
 
   const allReady = checkItems.every((c) => c.status === "ok");
@@ -128,7 +133,7 @@ function ExercisePage() {
 
   const handlePlayAgain = () => {
     setGameOverStats(null);
-    setGameKey((k) => k + 1); // fresh mount = fresh game state
+    setGameKey((k: number) => k + 1); // fresh mount = fresh game state
   };
 
   const handleGoToDashboard = () => {
@@ -177,6 +182,17 @@ function ExercisePage() {
                 {item.status === "checking" && <div className={styles.csSpinner} />}
               </div>
             ))}
+
+            <div className={styles.csCheckItem}>
+              <div className={styles.csCheckLeft}>
+                <span
+                  className={styles.csCheckLabel}
+                  style={{ color: isCalibrated ? '#4ade80' : '#94a3b8' }}
+                >
+                  {isCalibrated ? '✓ MediaPipe Calibrated' : '⏳ MediaPipe Calibrating...'}
+                </span>
+              </div>
+            </div>
 
             <p className={styles.csStatusText}>
               {allReady ? "All set - you're ready to go!" : "Preparing detection…"}
