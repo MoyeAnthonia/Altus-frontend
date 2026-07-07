@@ -1,6 +1,8 @@
 /* ── LOCAL TOKENS ── */
 .gphPage {
   --bg-game: rgb(14, 20, 48);
+  --bg-card: rgb(10, 14, 35);
+  --pixel: "Press Start 2P", monospace;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -155,7 +157,7 @@
 
 .csCheckLabel {
   font-family: var(--pixel);
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   color: #fff;
 }
@@ -231,5 +233,164 @@
   }
   .csSidebar {
     gap: 12px;
+  }
+}
+
+/* ── GAME OVER MODAL ── */
+.goBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 9, 26, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: goFadeIn 0.2s ease-out;
+}
+
+.goModal {
+  width: min(420px, 90vw);
+  background: var(--bg-card);
+  border: 2px solid var(--hard-color);
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  box-shadow: 0 0 40px rgba(216, 25, 46, 0.25);
+  animation: goPopIn 0.25s ease-out;
+}
+
+.goModalWin {
+  border-color: var(--easy-color);
+  box-shadow: 0 0 40px rgba(14, 165, 80, 0.25);
+}
+
+.goTitle {
+  font-family: var(--pixel);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--hard-color);
+  margin-bottom: 20px;
+}
+
+.goModalWin .goTitle {
+  color: var(--easy-color);
+}
+
+.goRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.goLabel {
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.goValue {
+  font-family: var(--pixel);
+  font-size: 0.6rem;
+  color: #e2e8f0;
+}
+
+.goDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 12px 0;
+}
+
+.goFinalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--pixel);
+  font-size: 0.75rem;
+  color: var(--cyan);
+}
+
+.goModalWin .goFinalRow {
+  color: var(--easy-color);
+}
+
+.goActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.goHintBtn,
+.goDashboardBtn {
+  flex: 1;
+  font-family: var(--pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  border-radius: 8px;
+  padding: 12px 10px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.goHintBtn {
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  animation: goPulse 1.6s ease-in-out infinite;
+}
+.goHintBtn:hover {
+  color: #fff;
+  border-color: var(--cyan);
+}
+
+.goModalWin .goHintBtn:hover {
+  border-color: var(--easy-color);
+}
+
+.goDashboardBtn {
+  color: #fff;
+  background: var(--primary-color);
+  border: 1.5px solid var(--primary-color);
+}
+.goDashboardBtn:hover {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: rgb(12, 17, 40);
+}
+
+@keyframes goFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes goPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes goPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import Button from "../../components/Button/Button";
 import { MotionCard } from "../../components/Cards/Cards";
+import GameOverModal, { type GameOverStats } from "../../components/Modal/Modal";
 import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 import type { MyPoseDetail } from "../../mediapipe/mediapipePlayer";
 
@@ -33,6 +34,11 @@ function ExercisePage() {
   const [bodyInFrame, setBodyInFrame] = useState(false);
   const [goodLighting, setGoodLighting] = useState(false);
 
+  // Game over state: null = game still running (or not started yet)
+  const [gameOverStats, setGameOverStats] = useState<GameOverStats | null>(null);
+  // Bumping this key remounts <GamePage />, giving us a fresh run on retry
+  const [gameKey, setGameKey] = useState(0);
+
   const { isReady } = useMediaPipe({ enabled: cameraEnabled });
 
   // Read live pose landmarks to score "body in frame" and "good lighting"
@@ -57,6 +63,21 @@ function ExercisePage() {
     return () => window.removeEventListener("mv:pose", onPose);
   }, [cameraEnabled]);
 
+  // Listen for the game announcing that a run has ended.
+  // GamePage dispatches "mv:gameover" with the run's stats — same
+  // window-event pattern as "mv:pose", so the game stays decoupled
+  // from the page that hosts it.
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const onGameOver = (e: Event) => {
+      setGameOverStats((e as CustomEvent<GameOverStats>).detail);
+    };
+
+    window.addEventListener("mv:gameover", onGameOver);
+    return () => window.removeEventListener("mv:gameover", onGameOver);
+  }, [hasStarted]);
+
   const checkItems: CheckItem[] = [
     {
       id: "camera",
@@ -77,6 +98,15 @@ function ExercisePage() {
 
   const allReady = checkItems.every((c) => c.status === "ok");
 
+  // Auto-advance to the game once every check is OK — the user is mid-squat
+  // at this point and can't reach for a mouse to click "Start". Debounced
+  // so a one-frame flicker in pose detection doesn't trigger it early.
+  useEffect(() => {
+    if (!allReady || hasStarted) return;
+    const timer = setTimeout(() => setHasStarted(true), 1000);
+    return () => clearTimeout(timer);
+  }, [allReady, hasStarted]);
+
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -94,6 +124,15 @@ function ExercisePage() {
 
   const gameNavigate = () => {
     nav("/level");
+  };
+
+  const handlePlayAgain = () => {
+    setGameOverStats(null);
+    setGameKey((k) => k + 1); // fresh mount = fresh game state
+  };
+
+  const handleGoToDashboard = () => {
+    nav("/profile");
   };
 
   return (
@@ -156,7 +195,16 @@ function ExercisePage() {
         ) : (
           <div className={styles.gphGameCol}>
             <div className={styles.gphGame}>
-              <GamePage />
+              <GamePage key={gameKey} />
+
+              <GameOverModal
+                isOpen={gameOverStats !== null}
+                stats={
+                  gameOverStats ?? { baseScore: 0, repStreak: 0, timeSeconds: 0, finalScore: 0 }
+                }
+                onPlayAgain={handlePlayAgain}
+                onDashboard={handleGoToDashboard}
+              />
             </div>
             <button className={styles.gphGameBackBtn} onClick={gameNavigate}>
               ← Back to difficulty select

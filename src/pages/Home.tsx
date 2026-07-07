@@ -6,6 +6,7 @@ import iconPlay from "../assets/icon-play.jpg";
 import { useNavigate } from "react-router";
 import Button from "../components/Button/Button";
 import { Badge } from "../components/Badge/Badge";
+import { useAuth } from "../context/useAuth";
 import WorkoutSection from "../components/WorkoutSection/WorkoutSection";
 import { FeatureCard, AudienceCard } from "../components/Cards/Cards";
 
@@ -89,6 +90,10 @@ function Home({
   const navGames = () => {
     nav("/workout");
   };
+  const navLogin = () => {
+    nav("/login");
+  };
+  const { isAuthenticated } = useAuth();
   return (
     <section className={styles.hero}>
       <div className={styles.content}>
@@ -107,12 +112,24 @@ function Home({
         </div>
 
         <div className={styles.actions}>
-          <Button
-            label="Start Playing"
-            onClick={navGames}
-            variant="primary"
-            aria-label="Start Playing"
-          />
+          {" "}
+          {isAuthenticated ? (
+            <>
+              <Button
+                onClick={navGames}
+                label="Start Playing"
+                variant="primary"
+                aria-label="Start Game"
+              />
+            </>
+          ) : (
+            <Button
+              onClick={navLogin}
+              label="Start Playing"
+              variant="primary"
+              aria-label="Start Game"
+            />
+          )}
           <Button label="Watch Demo" variant="secondary" aria-label="Watch App Demo" />
         </div>
       </div>
