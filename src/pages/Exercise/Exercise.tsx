@@ -98,7 +98,7 @@ function ExercisePage() {
       id: "mediapipe",
       label: "Pose Detection Ready",
       status: !isCalibrated ? "pending" : !hasPose ? "checking" : "ok",
-    }
+    },
   ];
 
   const allReady = checkItems.every((c) => c.status === "ok");
@@ -127,8 +127,8 @@ function ExercisePage() {
     }
   };
 
-  const gameNavigate = () => {
-    nav("/level");
+  const profileNavigate = () => {
+    nav("/profile");
   };
 
   const handlePlayAgain = () => {
@@ -149,7 +149,12 @@ function ExercisePage() {
       </header>
 
       <div className={styles.gphArena}>
-        <MotionCard videoRef={videoRef} label="Squat Detection" showGuide={!isCameraOpen}>
+        <MotionCard
+          videoRef={videoRef}
+          label="Squat Detection"
+          showGuide={!isCameraOpen}
+          className={styles.gphMotion}
+        >
           {!isCameraOpen && <Button label="Open Camera" onClick={openCamera} />}
           {isCameraOpen && (
             <canvas
@@ -187,9 +192,9 @@ function ExercisePage() {
               <div className={styles.csCheckLeft}>
                 <span
                   className={styles.csCheckLabel}
-                  style={{ color: isCalibrated ? '#4ade80' : '#94a3b8' }}
+                  style={{ color: isCalibrated ? "#4ade80" : "#94a3b8" }}
                 >
-                  {isCalibrated ? '✓ MediaPipe Calibrated' : '⏳ MediaPipe Calibrating...'}
+                  {isCalibrated ? "✓ MediaPipe Calibrated" : "⏳ MediaPipe Calibrating..."}
                 </span>
               </div>
             </div>
@@ -222,8 +227,8 @@ function ExercisePage() {
                 onDashboard={handleGoToDashboard}
               />
             </div>
-            <button className={styles.gphGameBackBtn} onClick={gameNavigate}>
-              ← Back to difficulty select
+            <button className={styles.gphGameBackBtn} onClick={profileNavigate}>
+              Go To Dashboard →
             </button>
           </div>
         )}
