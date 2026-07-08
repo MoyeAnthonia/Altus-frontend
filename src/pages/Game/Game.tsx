@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  DinoRunGame,
-  type DifficultyKey,
-  type GameEndResult,
+  DinoRunGame, DIFFICULTIES,
+  type DifficultyKey, type GameEndResult,
 } from "../../engine/DinoRunGameEngine";
 import { useMediaPipe } from '../../mediapipe/useMediaPipe';
 import GameResultModal from './GameResultModal';
+import GameIdleModal from './GameIdleModal';
 
 interface LocationState {
   difficulty: DifficultyKey;
@@ -18,30 +18,36 @@ function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<DinoRunGame | null>(null);
   const [gameResult, setGameResult] = useState<GameEndResult | null>(null);
+  const [isIdle, setIsIdle] = useState(false);
 
   const difficulty = (location.state as LocationState)?.difficulty ?? "medium";
+  const diffConfig = DIFFICULTIES[difficulty];
 
   useMediaPipe();
+
+  const bootGame = (canvas: HTMLCanvasElement) => {
+    gameRef.current = new DinoRunGame({
+      canvas,
+      difficulty,
+      onGameIdle: () => {
+        setIsIdle(true);
+        setGameResult(null);
+      },
+      onGameStart: () => setIsIdle(false),
+      onGameEnd: (result: GameEndResult) => {
+        setGameResult(result);
+      },
+    });
+  };
 
   useEffect(() => {
     if (!canvasRef.current) return;
     let cancelled = false;
 
-    const start = () => {
+    document.fonts.load('16px "Press Start 2P"').finally(() => {
       if (cancelled || !canvasRef.current) return;
-      gameRef.current = new DinoRunGame({
-        canvas: canvasRef.current,
-        difficulty,
-        onGameEnd: (result: GameEndResult) => {
-          setGameResult(result);
-        },
-          onGameStart: () => {
-            setGameResult(null);
-          },
-      });
-    };
-
-    document.fonts.load('16px "Press Start 2P"').finally(start);
+      bootGame(canvasRef.current);
+    });
 
     return () => {
       cancelled = true;
@@ -57,11 +63,7 @@ function GamePage() {
     if (!canvasRef.current) return;
     document.fonts.load('16px "Press Start 2P"').finally(() => {
       if (!canvasRef.current) return;
-      gameRef.current = new DinoRunGame({
-        canvas: canvasRef.current,
-        difficulty,
-        onGameEnd: (result: GameEndResult) => setGameResult(result),
-      });
+      bootGame(canvasRef.current);
     });
   };
 
@@ -73,6 +75,14 @@ function GamePage() {
   return (
     <>
       <canvas ref={canvasRef} style={{ maxWidth: "100%", maxHeight: "100%" }} />
+
+      {isIdle && !gameResult && (
+        <GameIdleModal
+          difficulty={diffConfig.label}
+          repGoal={diffConfig.repGoal}
+        />
+      )}
+
       {gameResult && (
         <GameResultModal
           result={gameResult}

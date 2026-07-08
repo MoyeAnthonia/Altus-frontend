@@ -35,6 +35,15 @@ export default function GameResultModal({ result, onRetry, onExit }: Props) {
             <span className={styles.rowValue}>×{result.timeMult.toFixed(2)}</span>
           </div>
         </div>
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>Difficulty</span>
+          <span className={styles.rowValue}>×{result.diffMult.toFixed(1)}</span>
+        </div>
+
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>Close Calls ({result.closeCallCount})</span>
+          <span className={styles.rowValue}>×{result.closeCallMult.toFixed(2)}</span>
+        </div>
 
         <div className={styles.divider} />
 
