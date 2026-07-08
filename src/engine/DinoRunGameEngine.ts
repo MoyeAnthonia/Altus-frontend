@@ -3,7 +3,7 @@
 const W = 1200, H = 620;
 const GROUND_Y = H - 12;
 const GRAVITY = 1700;
-const JUMP_VEL = -1200;
+const JUMP_VEL = -1100;
 const INITIAL_SPEED = 420;
 const MAX_SPEED = 420;
 const FONT = '"Press Start 2P", monospace';
@@ -27,10 +27,16 @@ type StateName = 'IDLE' | 'CALIBRATING' | 'ACTIVE' | 'PAUSED' | 'GAME_OVER' | 'W
 export type DifficultyKey = 'easy' | 'medium' | 'hard' | 'score_attack';
 
 interface DifficultyConfig {
-  label: string; repGoal: number; speed: number; obstacleDelay: number; color: string;
+  label: string; repGoal: number; speed: number; obstacleDelay: number; color: string; scoreMultiplier: number;
 }
 export interface ScoreBreakdown {
-  repStreak: number; timeMult: number; finalScore: number; secs: number;
+  repStreak: number; 
+  timeMult: number; 
+  diffMult: number;
+  closeCallMult: number;
+  closeCallCount: number;
+  finalScore: number; 
+  secs: number;
 }
 export interface GameEndResult extends ScoreBreakdown {
   result: 'won' | 'lost'; score: number;
@@ -41,7 +47,14 @@ interface DinoState {
   ducking: boolean; dead: boolean;
 }
 type CactusType = 'sm' | 'tall' | 'dbl';
-interface Obstacle { x: number; type: CactusType; w: number; h: number; scored: boolean; }
+interface Obstacle { 
+  x: number; 
+  type: CactusType; 
+  w: number; 
+  h: number; 
+  scored: boolean; 
+  minClearance: number; 
+}
 interface Cloud { x: number; y: number; scrollSpeed: number; alpha: number; }
 interface Star { x: number; y: number; size: number; alpha: number; }
 export interface DinoRunGameOptions {
@@ -49,6 +62,7 @@ export interface DinoRunGameOptions {
   difficulty?: DifficultyKey;
   onGameEnd?: (result: GameEndResult) => void;
   onGameStart?: () => void;
+  onGameIdle?: () => void;
 }
 
 // ── State machine ────────────────────────────────────────────────────────
@@ -85,10 +99,10 @@ class StateMachine {
 }
 
 export const DIFFICULTIES: Record<DifficultyKey, DifficultyConfig> = {
-  easy:         { label: 'Easy',         repGoal: 10,       speed: 420, obstacleDelay: 4000, color: '#4ade80' },
-  medium:       { label: 'Medium',       repGoal: 20,       speed: 420, obstacleDelay: 4000, color: '#38bdf8' },
-  hard:         { label: 'Hard',         repGoal: 40,       speed: 420, obstacleDelay: 4000, color: '#fbbf24' },
-  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 420, obstacleDelay: 4000, color: '#e74c3c' },
+  easy:         { label: 'Easy',         repGoal: 10,       speed: 420, obstacleDelay: 4000, color: '#4ade80', scoreMultiplier: 1 },
+  medium:       { label: 'Medium',       repGoal: 20,       speed: 420, obstacleDelay: 4000, color: '#38bdf8', scoreMultiplier: 2 },
+  hard:         { label: 'Hard',         repGoal: 40,       speed: 420, obstacleDelay: 4000, color: '#fbbf24', scoreMultiplier: 3 },
+  score_attack: { label: 'Score Attack', repGoal: Infinity, speed: 420, obstacleDelay: 4000, color: '#e74c3c', scoreMultiplier: 1 },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -125,87 +139,170 @@ function drawDino(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, frame: 0 | 1, ducking: boolean, dead: boolean
 ): void {
-  const main  = dead ? C.dead     : C.dino;
-  const dark  = dead ? C.deadDark : C.dinoDark;
-  const eye   = C.dinoEye;
+  const m  = dead ? '#c0392b' : '#2d7a1f';
+  const l  = dead ? '#e74c3c' : '#4ade80';
+  const b  = dead ? '#c0392b' : '#f5a623';
+  const d  = dead ? '#7b1a1a' : '#1a4a10';
+  const bk = dead ? '#4a0a0a' : '#0a1a06';
+  const lf = frame === 0;
+  const P  = 4; // pixel block size
 
-  // pixel size — each "pixel" is 4×4 for crisp hi-res look
-  const P = 4;
+  // ── TAIL ──────────────────────────────────────────────────────────────
+  ctx.fillStyle = bk;
+  ctx.fillRect(x+3*P, y+6*P,  2*P, P);
+  ctx.fillRect(x+2*P, y+7*P,  2*P, P);
+  ctx.fillRect(x+P,   y+8*P,  2*P, P);
+  ctx.fillRect(x+0,   y+9*P,  P,   2*P);
+  ctx.fillRect(x+0,   y+11*P, P,   P);
+  ctx.fillRect(x+P,   y+11*P, P,   P);
+  ctx.fillRect(x+2*P, y+10*P, P,   2*P);
+  ctx.fillRect(x+3*P, y+9*P,  P,   2*P);
+  ctx.fillRect(x+4*P, y+8*P,  P,   2*P);
+  ctx.fillStyle = m;
+  ctx.fillRect(x+3*P, y+7*P,  P,   P);
+  ctx.fillRect(x+2*P, y+8*P,  2*P, P);
+  ctx.fillRect(x+P,   y+9*P,  2*P, 2*P);
+  ctx.fillStyle = d;
+  ctx.fillRect(x+2*P, y+8*P,  P,   P);
+  ctx.fillRect(x+P,   y+10*P, P,   P);
 
-  if (ducking) {
-    // Ducking body (wide, low)
-    ctx.fillStyle = main;
-    ctx.fillRect(x + 2*P, y + 6*P, 16*P, 6*P);   // main body
-    ctx.fillRect(x + 14*P, y + 2*P, 8*P, 6*P);   // head
-    ctx.fillRect(x + 0,    y + 8*P, 4*P, 4*P);   // tail base
-    ctx.fillStyle = dark;
-    ctx.fillRect(x + 2*P, y + 10*P, 16*P, 2*P);  // body shadow
-    ctx.fillRect(x + 14*P, y + 6*P,  8*P, 2*P);  // head shadow
-    ctx.fillStyle = eye;
-    ctx.fillRect(x + 20*P, y + 3*P, 2*P, 2*P);   // eye
-    ctx.fillStyle = main;
-    // legs
-    if (frame === 0) {
-      ctx.fillRect(x + 6*P,  y + 12*P, 3*P, 6*P);
-      ctx.fillRect(x + 12*P, y + 12*P, 3*P, 4*P);
-    } else {
-      ctx.fillRect(x + 6*P,  y + 12*P, 3*P, 4*P);
-      ctx.fillRect(x + 12*P, y + 12*P, 3*P, 6*P);
-    }
-  } else {
-    // Standing body
-    ctx.fillStyle = main;
-    ctx.fillRect(x + 4*P,  y + 4*P,  12*P, 12*P);  // torso
-    ctx.fillRect(x + 10*P, y + 0,     9*P,  9*P);   // head
-    ctx.fillRect(x + 0,    y + 8*P,   6*P,  4*P);   // tail upper
-    ctx.fillRect(x + 1*P,  y + 6*P,   4*P,  4*P);   // tail tip
-    // snout
-    ctx.fillRect(x + 17*P, y + 3*P,   3*P,  4*P);
-    ctx.fillRect(x + 19*P, y + 6*P,   2*P,  1*P);   // nostril line
+  // ── BODY OUTLINE ──────────────────────────────────────────────────────
+  ctx.fillStyle = bk;
+  ctx.fillRect(x+5*P, y+6*P,  P,   10*P);
+  ctx.fillRect(x+4*P, y+8*P,  P,   6*P);
+  ctx.fillRect(x+5*P, y+16*P, 10*P, P);
+  ctx.fillRect(x+14*P,y+7*P,  P,   9*P);
 
-    // shading / depth
-    ctx.fillStyle = dark;
-    ctx.fillRect(x + 4*P,  y + 14*P, 12*P, 2*P);   // torso bottom shade
-    ctx.fillRect(x + 10*P, y + 7*P,   9*P, 2*P);   // head bottom shade
-    ctx.fillRect(x + 4*P,  y + 4*P,   2*P, 12*P);  // torso left shade
+  // ── HEAD + SNOUT OUTLINE ──────────────────────────────────────────────
+  ctx.fillRect(x+8*P, y+0,    6*P, P);
+  ctx.fillRect(x+7*P, y+P,    P,   P);
+  ctx.fillRect(x+6*P, y+2*P,  P,   5*P);
+  ctx.fillRect(x+14*P,y+P,    P,   3*P);
+  ctx.fillRect(x+14*P,y+4*P,  P,   P);
+  ctx.fillRect(x+15*P,y+3*P,  3*P, P);
+  ctx.fillRect(x+18*P,y+4*P,  P,   3*P);
+  ctx.fillRect(x+17*P,y+7*P,  2*P, P);
+  ctx.fillRect(x+14*P,y+7*P,  4*P, P);
 
-    // eye
-    ctx.fillStyle = eye;
-    ctx.fillRect(x + 15*P, y + 2*P, 2*P, 2*P);
-    // eye shine
+  // ── HEAD + SNOUT FILL ─────────────────────────────────────────────────
+  ctx.fillStyle = m;
+  ctx.fillRect(x+8*P, y+P,    6*P, P);
+  ctx.fillRect(x+7*P, y+2*P,  7*P, 5*P);
+  ctx.fillRect(x+14*P,y+3*P,  P,   4*P);
+  ctx.fillRect(x+15*P,y+3*P,  3*P, 4*P);
+  ctx.fillRect(x+17*P,y+4*P,  P,   3*P);
+  // nostril
+  ctx.fillStyle = bk;
+  ctx.fillRect(x+16*P,y+4*P,  P,   P);
+  // teeth
+  if (!dead) {
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x + 15*P, y + 2*P, 1*P, 1*P);
+    ctx.fillRect(x+15*P,y+7*P, P,   P);
+    ctx.fillRect(x+17*P,y+7*P, P,   P);
+  }
 
-    // neck indent
-    ctx.fillStyle = C.bg;
-    ctx.fillRect(x + 10*P, y + 8*P, 3*P, 2*P);
+  // ── NECK + BODY ───────────────────────────────────────────────────────
+  ctx.fillStyle = m;
+  ctx.fillRect(x+7*P, y+7*P,  6*P, 2*P);
+  ctx.fillRect(x+6*P, y+8*P,  8*P, 8*P);
+  ctx.fillRect(x+7*P, y+15*P, 6*P, P);
 
-    // arm nub
-    ctx.fillStyle = main;
-    ctx.fillRect(x + 14*P, y + 9*P, 3*P, 2*P);
+  // ── BELLY ─────────────────────────────────────────────────────────────
+  ctx.fillStyle = b;
+  ctx.fillRect(x+9*P,  y+9*P,  3*P, P);
+  ctx.fillRect(x+8*P,  y+10*P, 4*P, 3*P);
+  ctx.fillRect(x+9*P,  y+13*P, 3*P, 2*P);
+  ctx.fillRect(x+10*P, y+15*P, P,   P);
 
-    // legs
-    ctx.fillStyle = main;
-    if (dead) {
-      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 8*P);
-      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 8*P);
-    } else if (frame === 0) {
-      // left leg forward, right leg back
-      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 9*P);
-      ctx.fillRect(x + 6*P,  y + 23*P, 5*P, 2*P);  // left foot
-      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 6*P);
-      ctx.fillRect(x + 11*P, y + 20*P, 5*P, 2*P);  // right foot
+  // ── HIGHLIGHTS ────────────────────────────────────────────────────────
+  ctx.fillStyle = l;
+  ctx.fillRect(x+9*P,  y+2*P, 3*P, P);
+  ctx.fillRect(x+8*P,  y+3*P, 2*P, P);
+  ctx.fillRect(x+7*P,  y+8*P, P,   2*P);
+  ctx.fillRect(x+6*P,  y+9*P, P,   3*P);
+
+  // ── SHADING ───────────────────────────────────────────────────────────
+  ctx.fillStyle = d;
+  ctx.fillRect(x+6*P,  y+12*P, P,   4*P);
+  ctx.fillRect(x+13*P, y+9*P,  P,   6*P);
+
+  // ── EYE ───────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(x+11*P, y+3*P, 2*P, 2*P);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x+11*P, y+3*P, P,   P);
+
+  // ── ARM ───────────────────────────────────────────────────────────────
+  ctx.fillStyle = bk;
+  ctx.fillRect(x+12*P, y+9*P,  P,   3*P);
+  ctx.fillRect(x+13*P, y+11*P, P,   P);
+  ctx.fillStyle = m;
+  ctx.fillRect(x+12*P, y+9*P,  P,   3*P);
+  ctx.fillRect(x+13*P, y+11*P, P,   P);
+  ctx.fillStyle = d;
+  ctx.fillRect(x+12*P, y+10*P, P,   2*P);
+
+  // ── LEGS ──────────────────────────────────────────────────────────────
+  const leftLeg = (extended: boolean) => {
+    ctx.fillStyle = bk;
+    ctx.fillRect(x+6*P, y+17*P, 3*P, P);
+    ctx.fillRect(x+5*P, y+18*P, P,   3*P);
+    ctx.fillRect(x+8*P, y+18*P, P,   2*P);
+    ctx.fillRect(x+5*P, y+21*P, P,   3*P);
+    ctx.fillRect(x+7*P, y+20*P, P,   4*P);
+    ctx.fillRect(x+6*P, y+24*P, P,   P);
+    ctx.fillRect(x+7*P, y+24*P, 4*P, P);
+    ctx.fillRect(x+10*P,y+23*P, P,   P);
+    ctx.fillStyle = m;
+    ctx.fillRect(x+6*P, y+17*P, 2*P, P);
+    ctx.fillRect(x+6*P, y+18*P, 2*P, 2*P);
+    ctx.fillRect(x+6*P, y+20*P, P,   4*P);
+    ctx.fillRect(x+7*P, y+23*P, 3*P, P);
+    ctx.fillStyle = d;
+    ctx.fillRect(x+6*P, y+18*P, P,   3*P);
+  };
+
+  const rightLeg = (striding: boolean) => {
+    ctx.fillStyle = bk;
+    ctx.fillRect(x+11*P,y+17*P, 3*P, P);
+    ctx.fillRect(x+10*P,y+18*P, P,   3*P);
+    ctx.fillRect(x+13*P,y+18*P, P,   2*P);
+    if (striding) {
+      ctx.fillRect(x+10*P,y+21*P, P,   3*P);
+      ctx.fillRect(x+12*P,y+20*P, P,   4*P);
+      ctx.fillRect(x+11*P,y+24*P, 4*P, P);
+      ctx.fillRect(x+14*P,y+23*P, P,   P);
+      ctx.fillStyle = m;
+      ctx.fillRect(x+11*P,y+17*P, 2*P, P);
+      ctx.fillRect(x+11*P,y+18*P, 2*P, 2*P);
+      ctx.fillRect(x+11*P,y+20*P, P,   4*P);
+      ctx.fillRect(x+12*P,y+23*P, 2*P, P);
+      ctx.fillStyle = d;
+      ctx.fillRect(x+11*P,y+18*P, P,   3*P);
     } else {
-      // legs swapped
-      ctx.fillRect(x + 6*P,  y + 16*P, 4*P, 6*P);
-      ctx.fillRect(x + 5*P,  y + 20*P, 5*P, 2*P);  // left foot
-      ctx.fillRect(x + 12*P, y + 16*P, 4*P, 9*P);
-      ctx.fillRect(x + 12*P, y + 23*P, 5*P, 2*P);  // right foot
+      ctx.fillRect(x+10*P,y+21*P, P,   2*P);
+      ctx.fillRect(x+12*P,y+20*P, P,   2*P);
+      ctx.fillRect(x+11*P,y+22*P, 4*P, P);
+      ctx.fillRect(x+14*P,y+21*P, P,   P);
+      ctx.fillStyle = m;
+      ctx.fillRect(x+11*P,y+17*P, 2*P, P);
+      ctx.fillRect(x+11*P,y+18*P, 2*P, 2*P);
+      ctx.fillRect(x+11*P,y+20*P, P,   2*P);
+      ctx.fillRect(x+12*P,y+21*P, 2*P, P);
+      ctx.fillStyle = d;
+      ctx.fillRect(x+11*P,y+18*P, P,   3*P);
     }
-    // leg shading
-    ctx.fillStyle = dark;
-    ctx.fillRect(x + 6*P,  y + 16*P, 1*P, dead ? 8*P : 6*P);
-    ctx.fillRect(x + 12*P, y + 16*P, 1*P, dead ? 8*P : 6*P);
+  };
+
+  if (dead) {
+    leftLeg(false);
+    rightLeg(false);
+  } else if (lf) {
+    leftLeg(true);
+    rightLeg(false);
+  } else {
+    leftLeg(false);
+    rightLeg(true);
   }
 }
 
@@ -278,6 +375,8 @@ export class DinoRunGame {
   private initialDifficultyKey: DifficultyKey;
   private onGameEnd: (result: GameEndResult) => void;
   private onGameStart: () => void;
+  private onGameIdle: () => void;
+  private hasRunBefore = false;
   private sm: StateMachine;
   private keys: Record<string, boolean> = {};
   private _destroyed = false;
@@ -296,6 +395,8 @@ export class DinoRunGame {
   private distance = 0;
   private sessionTime = 0;
   private difficulty: DifficultyConfig | null = null;
+  private closeCallCount = 0;
+  private readonly CLOSE_CALL_PX = 120;
 
   private obstacleTimerId: ReturnType<typeof setTimeout> | null = null;
   private cloudTimerId: ReturnType<typeof setInterval> | null = null;
@@ -320,6 +421,7 @@ export class DinoRunGame {
     this.initialDifficultyKey = opts.difficulty ?? 'medium';
     this.onGameEnd = opts.onGameEnd ?? (() => {});
     this.onGameStart = opts.onGameStart ?? (() => {});
+    this.onGameIdle = opts.onGameIdle ?? (() => {});
 
     this.sm = new StateMachine('IDLE');
     this.sm.on('CALIBRATING', () => this.onCalibrating());
@@ -359,7 +461,7 @@ export class DinoRunGame {
 
   private reset(): void {
     // Dino is 88px wide, 100px tall at hi-res
-    this.dino = { x: 100, y: 0, w: 88, h: 100, vy: 0, frame: 0, frameTimer: 0, ducking: false, dead: false };
+    this.dino = { x: 100, y: 0, w: 96, h: 100, vy: 0, frame: 0, frameTimer: 0, ducking: false, dead: false };
     this.dinoGroundY = GROUND_Y - this.dino.h;
     this.dino.y = this.dinoGroundY;
     this.obstacles = [];
@@ -378,6 +480,7 @@ export class DinoRunGame {
     this.sessionTime = 0;
     this.difficulty = null;
     this.calibratingTimeoutId = null;
+    this.closeCallCount = 0;
   }
 
   private spawnCloud(xOverride?: number): void {
@@ -388,7 +491,7 @@ export class DinoRunGame {
     if (!this.sm.is('ACTIVE')) return;
     const type = pick<CactusType>(['sm', 'sm', 'sm', 'sm', 'tall', 'tall', 'dbl']);
     const dims = cactusDims(type);
-    this.obstacles.push({ x: W + 40, type, w: dims.w, h: dims.h, scored: false });
+    this.obstacles.push({ x: W + 40, type, w: dims.w, h: dims.h, scored: false, minClearance: -Infinity });
     const delay = this.difficulty?.obstacleDelay ?? 5000;
     this.obstacleTimerId = setTimeout(() => this.spawnObstacle(), delay);
   }
@@ -427,9 +530,16 @@ export class DinoRunGame {
 
   private restart(): void { this.reset(); this.sm.transition('IDLE'); }
   private die(): void { if (!this.sm.is('ACTIVE')) return; this.sm.transition('GAME_OVER'); }
-  private onIdle(): void { this.difficulty = DIFFICULTIES[this.initialDifficultyKey] ?? DIFFICULTIES.medium; }
+  private onIdle(): void { 
+    if (this.hasRunBefore) {
+      this.onGameStart();
+    }
+    this.onGameIdle();
+    this.difficulty = DIFFICULTIES[this.initialDifficultyKey] ?? DIFFICULTIES.medium; 
+  }
 
   private onCalibrating(): void {
+    this.onGameStart();
     if (!this.difficulty) return;
     this.speed = this.difficulty.speed;
     this.calibratingTimeoutId = setTimeout(() => {
@@ -438,7 +548,7 @@ export class DinoRunGame {
   }
 
   private onActive(): void {
-    this.onGameStart();
+    this.hasRunBefore = false;
     if (!this.obstacleTimerId) this.spawnObstacle();
     if (!this.cloudTimerId) this.cloudTimerId = setInterval(() => this.spawnCloud(), 3500);
   }
@@ -448,6 +558,7 @@ export class DinoRunGame {
   }
 
   private onGameOver(): void {
+    this.hasRunBefore = true;
     this.dino.dead = true;
     if (this.obstacleTimerId) { clearTimeout(this.obstacleTimerId); this.obstacleTimerId = null; }
     if (this.cloudTimerId)    { clearInterval(this.cloudTimerId);   this.cloudTimerId = null; }
@@ -456,6 +567,7 @@ export class DinoRunGame {
   }
 
   private onWin(): void {
+    this.hasRunBefore = true;
     if (this.obstacleTimerId) { clearTimeout(this.obstacleTimerId); this.obstacleTimerId = null; }
     if (this.cloudTimerId)    { clearInterval(this.cloudTimerId);   this.cloudTimerId = null; }
     if (this.score > this.hiScore) this.hiScore = this.score;
@@ -502,9 +614,31 @@ export class DinoRunGame {
     });
 
     // Scoring
-    const dinoLeft = this.dino.x;
+    const dinoLeft   = this.dino.x + 10;
+    const dinoRight  = this.dino.x + this.dino.w - 10;
+    const dinoBottom = this.dino.y + this.dino.h;
+    
     this.obstacles.forEach(o => {
-      if (!o.scored && (o.x + o.w) < dinoLeft) { o.scored = true; this.score += 1; }
+      const cactusTop   = GROUND_Y - o.h;
+      const cactusLeft  = o.x;
+      const cactusRight = o.x + o.w;
+
+      // While dino and cactus are horizontally overlapping, track closest vertical gap
+      const horizontallyAligned = dinoRight > cactusLeft && dinoLeft < cactusRight;
+      if (horizontallyAligned) {
+        const clearance = dinoBottom - cactusTop;
+        o.minClearance = Math.max(o.minClearance, clearance);
+      }
+
+      // Once the cactus has fully passed the dino, score it
+      if (!o.scored && cactusRight < dinoLeft) {
+        o.scored = true;
+        this.score += 1;
+
+        // Use the closest point tracked during the overlap window
+        const wasClose = o.minClearance < 0 && o.minClearance > -this.CLOSE_CALL_PX;
+        if (wasClose) this.closeCallCount++;
+      }
     });
 
     if (this.difficulty && this.score >= this.difficulty.repGoal) { this.sm.transition('WIN'); return; }
@@ -551,16 +685,8 @@ export class DinoRunGame {
 
     drawText(ctx, `REPS: ${this.score}`,        W / 2,   24, 32, '#94a3b8', 'center', 'top');
 
-    if (this.sm.is('IDLE'))      this.renderIdle();
     if (this.sm.is('CALIBRATING')) this.renderCalibrating();
     if (this.sm.is('PAUSED'))    this.renderPaused();
-  }
-
-  private renderIdle(): void {
-    const ctx = this.ctx;
-    drawRect(ctx, W/2 - 220, H/2 - 70, 440, 120, 'rgba(30,41,59,0.95)', C.dino, 2);
-    drawText(ctx, 'DINO RUN',       W/2, H/2 - 36, 32, '#38bdf8', 'center', 'middle');
-    drawText(ctx, 'SQUAT TO START', W/2, H/2 + 16, 14, '#94a3b8', 'center', 'middle');
   }
 
   private renderCalibrating(): void {
@@ -580,8 +706,11 @@ export class DinoRunGame {
   private scoreBreakdown(): ScoreBreakdown {
     const repStreak  = Math.max(1, this.score * 0.1);
     const timeMult   = Math.pow(1.1, Math.floor(this.sessionTime) * 0.1);
-    const finalScore = Math.round(this.score * 100 * repStreak * timeMult);
-    return { repStreak, timeMult, finalScore, secs: Math.floor(this.sessionTime) };
+    const diffMult       = this.difficulty?.scoreMultiplier ?? 1;
+    const closeCallMult  = Math.min(1 + this.closeCallCount * 0.1, 1.5);
+    const finalScore = Math.round(this.score * 100 * repStreak * timeMult * diffMult * closeCallMult);
+    return { repStreak, timeMult, diffMult, closeCallMult, closeCallCount: this.closeCallCount, finalScore, secs: Math.floor(this.sessionTime) };
+
   }
 
   destroy(): void {
