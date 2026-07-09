@@ -225,7 +225,7 @@ function drawDino(
   x: number,
   y: number,
   frame: 0 | 1,
-  ducking: boolean,
+  _ducking: boolean,
   dead: boolean,
 ): void {
   const m = dead ? "#c0392b" : "#2d7a1f";
