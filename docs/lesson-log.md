@@ -295,3 +295,122 @@ api/exercises.ts
 ### One-line summary
 
 Login succeeds first, auth state changes, the exercises provider notices that change, and then it fetches the squat exercise data automatically.
+
+---
+
+## 13. Passing data through React Router navigation state
+
+### Question
+How does `exerciseDifficultyId` actually get from the Level screen to the Game screen?
+
+### Answer
+`nav("/exercise", { state: { difficulty, exerciseDifficultyId } })` in `Level.tsx`, then `useLocation()` in `Game.tsx` reads that same `state` back out. `ExercisePage` and `GamePage` both render on the `/exercise` route, so `GamePage` can call `useLocation()` itself and get the same state — no prop drilling between the two components needed.
+
+### Why this matters
+The id has to travel from where it's known (Level, which has the backend exercise data) to where it's needed (Game, at `onGameEnd`) without a refetch. Route state is the simplest way to do that for a one-time handoff.
+
+---
+
+## 14. JS object shorthand property gotcha
+
+### Question
+Why did `{ canvas, activeDifficulty }` cause a type error in `Game.tsx`?
+
+### Answer
+`{ activeDifficulty }` is object shorthand for `{ activeDifficulty: activeDifficulty }` — it creates a key with the exact same name as the variable. But `DinoRunGameOptions` expects a key called `difficulty`, not `activeDifficulty`. Renaming a local variable doesn't rename the field the API/options type expects.
+
+### Why this matters
+Whenever a local variable's name doesn't match the field name the function/type expects, you must write the key explicitly: `{ difficulty: activeDifficulty }`. Shorthand only works when the names already match.
+
+---
+
+## 15. `useEffect`: dependency array vs. cleanup function
+
+### Question
+If the dependency array is `[]`, does the effect only run once — does that mean we can only count one repetition?
+
+### Answer
+Two separate things:
+- The dependency array controls how many times the **setup code** runs. `[]` means "run once, when the component mounts, never again."
+- That setup code can attach an **event listener**, which is ongoing — it fires every time the event happens, not just once. So the rep counter's listener can fire 15+ times in one game even though the effect that attached it only ran once.
+
+The `return () => ...` inside a `useEffect` is a **cleanup function**. React calls it automatically right before the component unmounts (or before re-running the effect again, if dependencies had changed). For the rep counter, cleanup removes the same listener that was added.
+
+### Why this matters
+`window` outlives any single component instance. Without cleanup, every remount (e.g. every retry) would stack a new listener on top of old ones that were never removed — a leak, and a source of bugs if the leftover listener ever touches `setState`.
+
+---
+
+## 16. `useRef` vs `useState` — when to use which
+
+### Question
+Why is the rep counter a `useRef` and not a `useState`?
+
+### Answer
+`useState` triggers a re-render every time it changes. `useRef` just holds a mutable value across renders without causing one. The rep count doesn't need to show up live on screen — it's only read once, at the moment the game ends — so `useRef` avoids dozens of wasted re-renders during a single run.
+
+### Why this matters
+General rule: if a value needs to appear in the UI, use `useState`. If it's just bookkeeping you'll read later, use `useRef`.
+
+---
+
+## 17. MediaPipe and the game are decoupled through events, not imports
+
+### Question
+Is the game actually decoupled from MediaPipe, or is everything mixed together?
+
+### Answer
+Three layers, connected only by `window` `CustomEvent`s, never by direct imports:
+1. `mediapipePlayer.tsx` — owns the camera + pose model, dispatches a generic `"mv:pose"` event with raw landmarks. Knows nothing about squats or games.
+2. `squatDetector.tsx` / `jumpDetector.tsx` — listen to `"mv:pose"`, interpret it as "a squat/jump happened," and dispatch their own events (`"mv:squat:start"`, `"mv:jump"`). Know nothing about the game.
+3. `DinoRunGameEngine.ts` — has zero imports from `src/mediapipe/`. It only does `window.addEventListener('mv:squat:start', ...)`, and that handler calls the exact same `handleJump()` a keyboard press would call.
+
+### Why this matters
+Because the coupling is just an event name on `window`, any number of independent listeners can react to the same detector event — e.g. the rep counter in `Game.tsx` listens to `"mv:squat:start"` for its own purpose, with zero knowledge of the game engine also listening to it. This is what makes it possible to swap games or add new listeners without touching the detector code.
+
+---
+
+## 18. Frontend score vs. backend score
+
+### Question
+Why does the game show one score and the backend compute a different one?
+
+### Answer
+The in-game number (`finalScore` in `DinoRunGameEngine.ts`) is a client-side arcade formula — reps × streak × time × difficulty × close-calls — built for gameplay feel and instant feedback. The backend computes its own, much simpler score (`reps_completed × score_multiplier`) independently from the raw reps sent in `POST /workout_sessions`, and that's the only one ever stored. The frontend's number is never sent to the backend and never trusted.
+
+### Why this matters
+This is intentional, not a bug: it's what makes the score tamper-resistant (the backend never reads a client-computed score, so editing the game in dev tools can't inflate a saved result). Full write-up: [docs/scoring-system.md](./scoring-system.md).
+
+---
+
+## 19. Diagnosing the "squat to retry" bug
+
+### Question
+Why does the game sometimes restart on its own, and does that mean the session doesn't get saved?
+
+### Answer
+`"mv:squat:start"` is overloaded in the engine to mean four different things depending on state: start from idle, retry from game-over, retry from win, or jump during active play. On the results screen, any accidental squat detected — easy to trigger since the player is standing a few feet from the camera — silently restarts the game with no confirmation.
+
+This is a UX bug, not a save bug: `onGameEnd` fires the instant the round ends, before any retry gesture, so once the backend POST is wired up it already fires reliably regardless of this issue. What's actually broken is that the results screen disappears too fast to read and there's no deliberate "yes, save this" moment.
+
+### Why this matters
+Fix is to stop overloading one gesture for everything — see the next entry.
+
+---
+
+## 20. Plan: thumbs up / thumbs down as deliberate confirmation gestures
+
+### Question
+Can we use thumbs up/down instead of squats to start the game and to confirm retry vs. save-and-exit?
+
+### Answer
+The current pipeline only loads MediaPipe's **Pose** model, which gives one rough point per thumb/wrist — not enough resolution to reliably tell thumbs-up from thumbs-down. Plan is to add MediaPipe's dedicated **Gesture Recognizer** task instead (same `@mediapipe/tasks-vision` package already installed, no new dependency), which has real hand tracking and built-in `Thumb_Up`/`Thumb_Down` categories.
+
+Plan, in order:
+1. Expose the shared `<video>` element from `mediapipePlayer.tsx` so a second detector can reuse the same camera stream.
+2. New `src/mediapipe/gestureDetector.tsx`, same confirm-frames + cooldown pattern as `squatDetector.tsx`, dispatching `"mv:thumb:up"` / `"mv:thumb:down"`.
+3. Test standalone (console.log only) at real gameplay distance from the camera before touching the engine — hand-gesture models are usually tuned for closer range, so this needs verifying first.
+4. Only after that's confirmed reliable: replace the squat-triggered `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` branches in the engine with thumbs-up, add a thumbs-down branch that triggers save-and-exit, update `GameIdleModal`/`GameResultModal` copy, and add an explicit manual "Save" button as a fallback.
+
+### Why this matters
+Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, and matches how far the player actually stands from the device.
