@@ -29,8 +29,11 @@ function LevelSection() {
   const hardDifficulty = selectedExercise?.difficulties.find(
     (difficulty) => difficulty.level_name === "Hard",
   );
-  const gameNavigate = (difficulty: "easy" | "medium" | "hard" | "score_attack") => {
-    nav("/exercise", { state: { difficulty } });
+  const gameNavigate = (
+    difficulty: "easy" | "medium" | "hard" | "score_attack",
+    exerciseDifficultyId?: string,
+  ) => {
+    nav("/exercise", { state: { difficulty, exerciseDifficultyId } });
   };
 
   return (
@@ -54,8 +57,8 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Easy – 10 push-ups"
-            onClick={() => gameNavigate("easy")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("easy")}
+            onClick={() => gameNavigate("easy", easyDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("easy", easyDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Easy</span>
             <span className={styles.lsCardCount}>{easyDifficulty?.target_reps}</span>
@@ -74,8 +77,8 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Medium – 20 push-ups"
-            onClick={() => gameNavigate("medium")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("medium")}
+            onClick={() => gameNavigate("medium", mediumDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("medium", mediumDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Medium</span>
             <span className={styles.lsCardCount}>{mediumDifficulty?.target_reps}</span>
@@ -94,8 +97,8 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Hard – 40 push-ups"
-            onClick={() => gameNavigate("hard")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("hard")}
+            onClick={() => gameNavigate("hard", hardDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("hard", hardDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Hard</span>
             <span className={styles.lsCardCount}>{hardDifficulty?.target_reps}</span>{" "}

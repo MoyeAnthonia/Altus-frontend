@@ -1,34 +1,39 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  DinoRunGame, DIFFICULTIES,
-  type DifficultyKey, type GameEndResult,
+  DinoRunGame,
+  DIFFICULTIES,
+  type DifficultyKey,
+  type GameEndResult,
 } from "../../engine/DinoRunGameEngine";
-import { useMediaPipe } from '../../mediapipe/useMediaPipe';
-import GameResultModal from './GameResultModal';
-import GameIdleModal from './GameIdleModal';
+import { useMediaPipe } from "../../mediapipe/useMediaPipe";
+import GameResultModal from "./GameResultModal";
+import GameIdleModal from "./GameIdleModal";
 
 interface LocationState {
   difficulty: DifficultyKey;
+  exerciseDifficultyId?: string;
 }
 
 function GamePage() {
   const location = useLocation();
   const nav = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const repCountRef = useRef(0);
   const gameRef = useRef<DinoRunGame | null>(null);
   const [gameResult, setGameResult] = useState<GameEndResult | null>(null);
   const [isIdle, setIsIdle] = useState(false);
 
-  const difficulty = (location.state as LocationState)?.difficulty ?? "medium";
-  const diffConfig = DIFFICULTIES[difficulty];
+  const { difficulty, exerciseDifficultyId } = (location.state as LocationState) ?? {};
+  const activeDifficulty = difficulty ?? "medium";
+  const diffConfig = DIFFICULTIES[activeDifficulty];
 
   useMediaPipe();
 
   const bootGame = (canvas: HTMLCanvasElement) => {
     gameRef.current = new DinoRunGame({
       canvas,
-      difficulty,
+      difficulty: activeDifficulty,
       onGameIdle: () => {
         setIsIdle(true);
         setGameResult(null);
@@ -39,6 +44,14 @@ function GamePage() {
       },
     });
   };
+
+  useEffect(() => {
+    const onSquat = () => {
+      repCountRef.current += 1;
+    };
+    window.addEventListener("mv:squat:start", onSquat);
+    return () => window.removeEventListener("mv:squat:start", onSquat);
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -69,7 +82,7 @@ function GamePage() {
 
   const handleExit = () => {
     setGameResult(null);
-    nav('/level');
+    nav("/level");
   };
 
   return (
@@ -77,18 +90,11 @@ function GamePage() {
       <canvas ref={canvasRef} style={{ maxWidth: "100%", maxHeight: "100%" }} />
 
       {isIdle && !gameResult && (
-        <GameIdleModal
-          difficulty={diffConfig.label}
-          repGoal={diffConfig.repGoal}
-        />
+        <GameIdleModal difficulty={diffConfig.label} repGoal={diffConfig.repGoal} />
       )}
 
       {gameResult && (
-        <GameResultModal
-          result={gameResult}
-          onRetry={handleRetry}
-          onExit={handleExit}
-        />
+        <GameResultModal result={gameResult} onRetry={handleRetry} onExit={handleExit} />
       )}
     </>
   );
