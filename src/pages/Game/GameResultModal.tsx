@@ -1,6 +1,6 @@
 // src/pages/Game/GameResultModal.tsx
-import styles from './GameResultModal.module.css';
-import type { GameEndResult } from '../../engine/DinoRunGameEngine';
+import styles from "./GameResultModal.module.css";
+import type { GameEndResult } from "../../engine/DinoRunGameEngine";
 
 interface Props {
   result: GameEndResult;
@@ -9,15 +9,14 @@ interface Props {
 }
 
 export default function GameResultModal({ result, onRetry, onExit }: Props) {
-  const won = result.result === 'won';
+  const won = result.result === "won";
 
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-
         {/* Title */}
         <p className={`${styles.title} ${won ? styles.titleWin : styles.titleLose}`}>
-          {won ? '🏆 YOU WIN!' : 'GAME OVER'}
+          {won ? "🏆 YOU WIN!" : "GAME OVER"}
         </p>
 
         {/* Score breakdown rows */}
@@ -34,6 +33,15 @@ export default function GameResultModal({ result, onRetry, onExit }: Props) {
             <span className={styles.rowLabel}>Game Time ({result.secs}s)</span>
             <span className={styles.rowValue}>×{result.timeMult.toFixed(2)}</span>
           </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>Difficulty</span>
+          <span className={styles.rowValue}>×{result.diffMult.toFixed(1)}</span>
+        </div>
+
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>Close Calls ({result.closeCallCount})</span>
+          <span className={styles.rowValue}>×{result.closeCallMult.toFixed(2)}</span>
         </div>
 
         <div className={styles.divider} />
@@ -55,7 +63,6 @@ export default function GameResultModal({ result, onRetry, onExit }: Props) {
             ← Change Difficulty
           </button>
         </div>
-
       </div>
     </div>
   );
