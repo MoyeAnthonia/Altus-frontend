@@ -52,6 +52,7 @@ function GamePage() {
           }).catch((err) => console.error("Failed to save workout session:", err));
         }
       },
+      onExitRequested: handleExit,
     });
   };
 

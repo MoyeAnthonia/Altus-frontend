@@ -41,6 +41,18 @@ function ExercisePage() {
 
   const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
 
+  useEffect(() => {
+    const onUp = () => console.log("✅ confirm detected");
+    const onDown = () => console.log("🛑 cancel detected");
+    window.addEventListener("mv:confirm", onUp);
+    window.addEventListener("mv:cancel", onDown);
+
+    return () => {
+      window.removeEventListener("mv:confirm", onUp);
+      window.removeEventListener("mv:cancel", onDown);
+    };
+  }, []);
+
   // Read live pose landmarks to score "body in frame" and "good lighting"
   useEffect(() => {
     if (!cameraEnabled) return;

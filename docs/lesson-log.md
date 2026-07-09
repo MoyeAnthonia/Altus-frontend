@@ -393,27 +393,29 @@ Why does the game sometimes restart on its own, and does that mean the session d
 
 This is a UX bug, not a save bug: `onGameEnd` fires the instant the round ends, before any retry gesture, so once the backend POST is wired up it already fires reliably regardless of this issue. What's actually broken is that the results screen disappears too fast to read and there's no deliberate "yes, save this" moment.
 
+**Confirmed in practice, and a second bug found alongside it:** testing showed the start-squat and retry-squat were both being counted by the rep counter as real reps (since `repCountRef` listens to every `"mv:squat:start"` with no way to tell "control" squats from "workout" squats apart). Separately, `Game.tsx`'s `handleRetry` rebuilds the engine in place without remounting `GamePage`, so `repCountRef` was never reset between rounds — reps kept accumulating round over round. The reset was a quick independent fix (`repCountRef.current = 0` at the top of `handleRetry`); the double-counting itself needed the gesture change below.
+
 ### Why this matters
 Fix is to stop overloading one gesture for everything — see the next entry.
 
 ---
 
-## 20. Plan: thumbs up / thumbs down as deliberate confirmation gestures
+## 20. Confirm/cancel gestures instead of squats for start and retry (plan pivoted mid-build)
 
 ### Question
-Can we use thumbs up/down instead of squats to start the game and to confirm retry vs. save-and-exit?
+Can we use a gesture other than squats to start the game and to confirm retry vs. save-and-exit — and if so, which gesture?
 
 ### Answer
-The current pipeline only loads MediaPipe's **Pose** model, which gives one rough point per thumb/wrist — not enough resolution to reliably tell thumbs-up from thumbs-down. Plan is to add MediaPipe's dedicated **Gesture Recognizer** task instead (same `@mediapipe/tasks-vision` package already installed, no new dependency), which has real hand tracking and built-in `Thumb_Up`/`Thumb_Down` categories.
+**Original plan:** thumbs up/down via MediaPipe's dedicated **Gesture Recognizer** task (real hand tracking, built-in `Thumb_Up`/`Thumb_Down` categories) — the existing **Pose** model only gives one rough point per thumb/wrist, not enough resolution to tell thumbs-up from thumbs-down reliably. Built `src/mediapipe/gestureDetector.tsx` for this and confirmed the model loaded and ran per-frame without errors.
 
-Plan, in order:
-1. Expose the shared `<video>` element from `mediapipePlayer.tsx` so a second detector can reuse the same camera stream.
-2. New `src/mediapipe/gestureDetector.tsx`, same confirm-frames + cooldown pattern as `squatDetector.tsx`, dispatching `"mv:thumb:up"` / `"mv:thumb:down"`.
-3. Test standalone (console.log only) at real gameplay distance from the camera before touching the engine — hand-gesture models are usually tuned for closer range, so this needs verifying first.
-4. Only after that's confirmed reliable: replace the squat-triggered `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` branches in the engine with thumbs-up, add a thumbs-down branch that triggers save-and-exit, update `GameIdleModal`/`GameResultModal` copy, and add an explicit manual "Save" button as a fallback.
+**What actually happened when testing it:** no thumbs-up/down ever triggered. Debugging it surfaced a mix-up worth remembering on its own (see the new entry on this below) — the skeleton visible on screen is the Pose model's rough hand-region points (4 of them), not the Gesture Recognizer's real hand landmarks, which aren't drawn anywhere. Once that confusion was cleared up, the working theory was: hand-gesture models are tuned for a hand filling a good part of the frame (video calls, sign language), not a hand several feet from the camera in a full-body game setup.
+
+**Pivoted to:** reusing the already-loaded Pose model instead of adding a second one — comparing wrist Y vs. shoulder Y (`src/mediapipe/armGestureDetector.tsx`), same confirm-frames + cooldown pattern as `squatDetector.tsx`, dispatching `"mv:confirm"` (right arm raised) / `"mv:cancel"` (left arm raised). Tested standalone via console log at real gameplay distance and both triggered reliably. This is what's actually being wired into the engine now, not the thumbs-up plan.
+
+Remaining steps: replace the squat-triggered `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` branches in `DinoRunGameEngine.ts` with `"mv:confirm"`, add an `onExitRequested` callback fired by `"mv:cancel"` from `GAME_OVER`/`WIN` (wired to `Game.tsx`'s existing `handleExit`), then update `GameIdleModal`/`GameResultModal` copy. `gestureDetector.tsx` and the `getVideoElement()` export added to `mediapipePlayer.tsx` for the abandoned approach are unused but left in place for now.
 
 ### Why this matters
-Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, and matches how far the player actually stands from the device.
+Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, matches how far the player actually stands from the device, and reuses a model already proven reliable at that distance instead of adding a second one tuned for a different use case.
 
 ---
 
@@ -452,3 +454,70 @@ Even without `await`, the `.catch(...)` chained onto the call is still doing rea
 
 ### Why this matters
 This pattern — call, don't await, but still `.catch()` — is called "fire and forget," and it's the right shape for a side effect the UI doesn't need to block on. The moment you *do* need the result for something afterward (e.g. reading `score`/`calories_burned`/`new_achievements` off the response to display verified badges), that's the signal to switch to `await` (marking the enclosing function `async`) or a `.then(...)` — which is exactly the shape the badges/score display step will need later.
+
+---
+
+## Two independent tracking models can look similar but aren't the same system
+
+### Question
+The on-screen skeleton only shows about 4 rough points near the hand — doesn't that prove hand-gesture detection (thumbs up/down) can't work?
+
+### Answer
+No — that skeleton is drawn by `mediapipePlayer.tsx`'s `drawConnectors`/`drawLandmarks` calls, and it only ever visualizes the **Pose** model's landmarks (33 whole-body points, ~4 of them near each hand). MediaPipe's `GestureRecognizer` is a completely separate model doing its own independent hand detection straight from the video — it has its own 21-point-per-hand tracking with full finger detail, and nothing in the code draws *its* output on screen. So the low-resolution skeleton you can see is not evidence about whether the higher-resolution model (that you can't see) is working.
+
+### Why this matters
+When two systems produce visually similar-looking output (both are "a skeleton over a video feed"), don't diagnose one by looking at the other's visualization. Get raw evidence directly from the system actually under test — e.g. a temporary `console.log` of the exact values it's producing — rather than inferring from a related-looking proxy. This is the same instinct as checking `git status`/reading a file directly instead of assuming from a summary.
+
+---
+
+## When does a bugfix deserve its own commit?
+
+### Question
+I fixed a bug while building a new feature (`repCountRef` not resetting on retry) — does that need a separate commit from the feature?
+
+### Answer
+Rule of thumb: **would you want to revert this fix independently of the feature it was found alongside, or vice versa?** If yes — they're conceptually unrelated — give the fix its own commit so it can be reverted or bisected on its own later. If the fix was only discoverable *because* of the feature being built, is small, and lives in the same file/function you were already touching, bundling it into the same commit is reasonable; splitting it would mean interactively staging hunks (`git add -p`) for very little benefit.
+
+### Why this matters
+Commit granularity is a judgment call, not a fixed rule — the deciding question is about future revert/bisect usefulness, not "is this technically two different changes."
+
+---
+
+## Splitting one overloaded gesture into purpose-built events
+
+### Question
+Why split `"mv:squat:start"` into three separate events (`"mv:squat:start"`, `"mv:confirm"`, `"mv:cancel"`) instead of just fixing the squat handler's logic?
+
+### Answer
+The original bug (see the "squat to retry" entry above) wasn't really a logic bug — the real problem was that one physical gesture (squat) meant four different things depending on game state: start, retry, jump, and implicitly "yes, restart." Any listener reacting to `"mv:squat:start"` had no way to know which meaning was intended in a given moment, because the event itself carries no information beyond "a squat happened."
+
+The fix adds two new gestures — right arm raised (`"mv:confirm"`) and left arm raised (`"mv:cancel"`) — built on the same Pose model already loaded for squats (`armGestureDetector.tsx`, reusing the confirm-frames + cooldown pattern from `squatDetector.tsx`), and narrows the engine's squat handler to exactly one meaning: jump. `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` now listen for `"mv:confirm"`; a new `"mv:cancel"` handler, guarded to only fire from `GAME_OVER`/`WIN`, is exit-only.
+
+### Why this matters
+When one event means multiple things, every listener has to guess intent from state alone, and any accidental trigger still does *something* — just not necessarily the right thing. Splitting by intent, not by physical motion, means each event only ever means one thing everywhere it's heard.
+
+---
+
+## Adding a new engine callback: the `onExitRequested` pattern
+
+### Question
+How does `DinoRunGame` tell `Game.tsx` that the player wants to leave the results screen, without the engine knowing anything about routing?
+
+### Answer
+Same pattern as `onGameEnd`/`onGameStart`/`onGameIdle`: `DinoRunGameOptions` gained one more optional callback, `onExitRequested?: () => void`, defaulted to a no-op if not passed (`opts.onExitRequested ?? (() => {})`). The engine's `"mv:cancel"` handler just calls `this.onExitRequested()` when the game is over — it never calls `nav()` or knows `/level` exists. `Game.tsx` passes its own `handleExit` (which does `setGameResult(null); nav("/level");`) as that callback.
+
+### Why this matters
+This keeps the engine's only dependency on the outside world as "a handful of callbacks," the same boundary `onGameEnd` already established — the engine still has zero imports from React or React Router, and `Game.tsx` decides what "exit" actually means, not the engine.
+
+---
+
+## Word choice: "Retry" vs "Play Again"
+
+### Question
+Is "Retry" the right word for the results-screen button, given the previous round's result is already saved?
+
+### Answer
+No — `onGameEnd` fires and saves the workout session the instant the round ends, *before* the player does anything else. Pressing the button afterward doesn't undo or redo that save; it just boots a brand-new, independent `DinoRunGame` instance for a new session. "Retry" implies "try that attempt again," which isn't accurate — especially on the WIN path, where nothing failed. "Play Again" describes what's actually happening (start a new session) without implying anything about the old one.
+
+### Why this matters
+UI copy that implies the wrong mental model can make a player second-guess whether their score was actually saved, even when the save already happened independently of the button they're about to press.

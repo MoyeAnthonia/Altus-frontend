@@ -9,7 +9,7 @@ import { initMediaPipe } from "./mediapipePlayer";
 import { initJumpDetector } from "./jumpDetector";
 import { initSquatDetector } from "./squatDetector";
 import type { MvCalibratedDetail } from "./squatDetector";
-
+import { initArmGestureDetector } from "./armGestureDetector";
 interface UseMediaPipeReturn {
   isReady: boolean;
   isCalibrated: boolean;
@@ -31,6 +31,7 @@ export function useMediaPipe({ enabled = false }: { enabled?: boolean } = {}): U
       .then(() => {
         initJumpDetector();
         initSquatDetector();
+        initArmGestureDetector();
       })
       .catch((err) => {
         console.warn("[useMediaPipe] Failed to start:", err);

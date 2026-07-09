@@ -24,6 +24,11 @@ export interface MyPoseDetail {
   poseWorldLandmarks: Landmark[];
 }
 
+let currentVideo: HTMLVideoElement | null = null;
+export function getVideoElement(): HTMLVideoElement | null {
+  return currentVideo;
+}
+
 export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) {
   const video = document.createElement("video");
   video.setAttribute("playsinline", "");
@@ -58,6 +63,7 @@ export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) 
     video.addEventListener("loadeddata", () => resolve(), { once: true });
   });
   video.play();
+  currentVideo = video;
 
   let drawingUtils: DrawingUtils | null = null;
   let lastTs = -1;

@@ -1,6 +1,6 @@
 // src/pages/Game/GameResultModal.tsx
-import styles from './GameResultModal.module.css';
-import type { GameEndResult } from '../../engine/DinoRunGameEngine';
+import styles from "./GameResultModal.module.css";
+import type { GameEndResult } from "../../engine/DinoRunGameEngine";
 
 interface Props {
   result: GameEndResult;
@@ -9,15 +9,14 @@ interface Props {
 }
 
 export default function GameResultModal({ result, onRetry, onExit }: Props) {
-  const won = result.result === 'won';
+  const won = result.result === "won";
 
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-
         {/* Title */}
         <p className={`${styles.title} ${won ? styles.titleWin : styles.titleLose}`}>
-          {won ? '🏆 YOU WIN!' : 'GAME OVER'}
+          {won ? "🏆 YOU WIN!" : "GAME OVER"}
         </p>
 
         {/* Score breakdown rows */}
@@ -58,13 +57,12 @@ export default function GameResultModal({ result, onRetry, onExit }: Props) {
         {/* Buttons */}
         <div className={styles.actions}>
           <button className={styles.retryBtn} onClick={onRetry}>
-            Squat to Retry
+            Right Arm Up to Play Again
           </button>
           <button className={styles.exitBtn} onClick={onExit}>
             ← Change Difficulty
           </button>
         </div>
-
       </div>
     </div>
   );
