@@ -19,11 +19,19 @@ let currentGesture: "confirm" | "cancel" | null = null;
 let confirmCount = 0;
 let lastTriggerAt = 0;
 
+function handlePoseEvent(e: Event) {
+  onPoseFrame((e as CustomEvent<MyPoseDetail>).detail);
+}
+
 export function initArmGestureDetector() {
-  window.addEventListener("mv:pose", (e: Event) => {
-    onPoseFrame((e as CustomEvent<MyPoseDetail>).detail);
-  });
+  window.addEventListener("mv:pose", handlePoseEvent);
   console.log("[ArmGestureDetector] Ready to see your arms!");
+}
+
+export function stopArmGestureDetector() {
+  window.removeEventListener("mv:pose", handlePoseEvent);
+  currentGesture = null;
+  confirmCount = 0;
 }
 
 function onPoseFrame(results: MyPoseDetail) {

@@ -521,3 +521,64 @@ No — `onGameEnd` fires and saves the workout session the instant the round end
 
 ### Why this matters
 UI copy that implies the wrong mental model can make a player second-guess whether their score was actually saved, even when the save already happened independently of the button they're about to press.
+
+---
+
+## Fixing the camera-stays-on bug: "stop the camera" is actually three resources, not one
+
+### Question
+Why didn't the camera turn off when leaving the game page, even though `Game.tsx` and `ExercisePage` both unmount normally on navigation?
+
+### Answer
+`initMediaPipe()` (`mediapipePlayer.tsx`) starts three separate things, and none of them had any way to be stopped:
+1. A `getUserMedia` **`MediaStream`** — the actual camera hardware access.
+2. A **`requestAnimationFrame`** loop (`processFrame`) that re-schedules itself forever with no cancellation path.
+3. A **`PoseLandmarker`** instance — holds WASM/GPU resources for pose detection.
+
+Unmounting the React component that *started* these doesn't stop any of them, because none of the three live inside React at all — the hidden `<video>` element is appended straight to `document.body`, bypassing the component tree entirely, and the stream/rAF-loop/model are plain module-level variables. React's unmount only cleans up what React manages (component state, DOM nodes it rendered, effects it ran) — anything a `useEffect` reaches out and starts in the wider browser environment needs its own explicit teardown in that same effect's cleanup function.
+
+The fix: store all three in module state, and export a `stopMediaPipe()` that stops the stream's tracks, `cancelAnimationFrame`s the loop, and `.close()`s the landmarker — then call it from `useMediaPipe.tsx`'s `useEffect` cleanup, which already runs on unmount.
+
+### Why this matters
+"Starting" a browser resource (camera, timers, sockets, animation loops) and "owning a React component that happened to start it" are two different lifetimes. Any time an effect reaches outside React to start something, the same effect's cleanup is responsible for stopping it — React won't do it automatically just because a component disappeared.
+
+---
+
+## Two independent camera streams can exist for the same feature
+
+### Question
+After fixing `mediapipePlayer.tsx`'s teardown, the camera indicator still stayed on after pressing back. Why?
+
+### Answer
+`ExercisePage`'s own `openCamera()` opens a **second, separate** `getUserMedia` stream — used only for the visible preview thumbnail (`videoRef`/`MotionCard`) — completely independent of the hidden stream `mediapipePlayer.tsx` uses for actual pose detection. Fixing one had no effect on the other; both had to be tracked (`streamRef`) and stopped (`.getTracks().forEach(t => t.stop())` in a cleanup effect) separately.
+
+### Why this matters
+When a bug report says "the camera," check whether there's actually more than one camera stream backing that feature before assuming one fix covers it. Grepping for every `getUserMedia` call in the codebase (not just the one file you expect) is what surfaced this.
+
+---
+
+## Module-level state persists across every mount — that's a feature and a trap
+
+### Question
+Why did calibration get "stuck" after fixing the camera teardown — the checklist just hung with nothing turning green?
+
+### Answer
+`squatDetector.tsx`'s `isCalibrated`, `baselineY`, and `calibrationSamples` are plain module-level `let`s, not React state — they live for the entire life of the page, across every mount/unmount of the components that use them. We *wanted* that: it's what lets a second play session skip the 4-second stand-still and reuse the first session's baseline.
+
+But `"mv:calibrated"` — the only event that tells the UI "calibration is done" — was only ever dispatched from *inside* the one-time calibration block. Once `isCalibrated` was `true` from a previous session, that block never ran again, so the event never fired again, so a brand-new `ExercisePage` instance had no way to find out calibration had already happened. The fix: `initSquatDetector()` now checks `if (isCalibrated)` on startup and immediately re-dispatches `"mv:calibrated"` itself, so any fresh listener gets caught up right away instead of waiting for an event that already happened in a previous life of the module.
+
+### Why this matters
+This is the general shape of the bug, not a one-off: **whenever state lives outside a component (module scope, a singleton, a cache) but the UI only learns about it through events, "already true" and "just became true" need to be handled as two separate cases.** An event fired once, at the moment a value changes, only reaches listeners that already existed at that moment — any listener that starts existing later needs the current state actively re-announced to it, not just the next change.
+
+---
+
+## You can't `removeEventListener` an anonymous function
+
+### Question
+Why did every detector (`squatDetector.tsx`, `armGestureDetector.tsx`) need a named `handlePoseEvent` function instead of the inline arrow function they had before?
+
+### Answer
+`removeEventListener` only removes a listener if you pass the *exact same function reference* that was passed to `addEventListener`. An inline arrow function (`(e) => onSquatFrame(...)`) creates a brand-new function object every time it's written — even textually identical code — so there's no way to ever refer back to "that one" to remove it. Pulling it out to a named, module-level `function handlePoseEvent(e) {...}` gives both `addEventListener` and `removeEventListener` the same reference to point at.
+
+### Why this matters
+Any time a listener needs to be removable later, it can't be anonymous — this is a hard JS/DOM constraint, not a style preference. It's also what was silently causing the duplicate-listener stacking bug: every re-entry into the game called `initSquatDetector()` again, adding another anonymous listener with no way to ever clean up the previous one.
