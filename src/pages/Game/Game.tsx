@@ -9,13 +9,15 @@ import {
 import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 import GameResultModal from "./GameResultModal";
 import GameIdleModal from "./GameIdleModal";
-
+import { useAuth } from "../../context/useAuth";
+import { saveWorkoutSession } from "../../api/workoutSessions";
 interface LocationState {
   difficulty: DifficultyKey;
   exerciseDifficultyId?: string;
 }
 
 function GamePage() {
+  const { token } = useAuth();
   const location = useLocation();
   const nav = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,6 +43,14 @@ function GamePage() {
       onGameStart: () => setIsIdle(false),
       onGameEnd: (result: GameEndResult) => {
         setGameResult(result);
+
+        if (token && exerciseDifficultyId) {
+          saveWorkoutSession(token, {
+            exercise_difficulty_id: exerciseDifficultyId,
+            reps_completed: repCountRef.current,
+            duration_seconds: Math.round(result.secs),
+          }).catch((err) => console.error("Failed to save workout session:", err));
+        }
       },
     });
   };
@@ -70,6 +80,7 @@ function GamePage() {
   }, [difficulty]);
 
   const handleRetry = () => {
+    repCountRef.current = 0;
     setGameResult(null);
     gameRef.current?.destroy();
     gameRef.current = null;

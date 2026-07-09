@@ -414,3 +414,41 @@ Plan, in order:
 
 ### Why this matters
 Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, and matches how far the player actually stands from the device.
+
+---
+
+*From here on, entries are grouped by topic name instead of a running lesson number.*
+
+---
+
+## Designing an API client function from scratch
+
+### Question
+How do you decide how to write a new `api/*.tsx` file — where do you even start?
+
+### Answer
+A repeatable checklist, not something invented per file:
+1. Find the exact contract in the API spec first — method, path, whether it needs auth, the request body shape, the response body shape. Don't write code before you can answer all of these.
+2. Check whether existing `api/*.tsx` files already establish a pattern (base URL variable, header style, error-handling shape) and reuse it rather than inventing something new. `workoutSessions.tsx` ended up as a hybrid of `auth.tsx` (POST + JSON body) and `exercises.tsx` (needs the auth header).
+3. Decide what the function needs as parameters — anything it can't discover on its own (the token, since a plain `.tsx` module can't call `useAuth()`; the payload data, since the function doesn't know what game was played).
+4. Define types that mirror the wire format field-for-field — same names, same casing as the spec. This is the frontend/backend boundary, so getting it right here gives type safety to everything downstream for free.
+5. Write the function signature (inputs → output) before writing the body.
+6. Implement it, checking `response.ok` manually — `fetch` does not throw on a 400/404/500, only on true network failure.
+
+### Why this matters
+This is the same six steps for any new endpoint client, not just this one — a framework you can explain and repeat, not a one-off recipe.
+
+---
+
+## Calling an `async` function without `await` ("fire and forget")
+
+### Question
+`saveWorkoutSession` is declared `async`. Why do we call it without `await` inside `onGameEnd`?
+
+### Answer
+`async` only guarantees the function returns a `Promise` — it does not force whoever calls it to wait. `await` is a separate, optional choice made at the call site. Not awaiting means: "start this now, but don't pause here for the result." That's fine when nothing that runs immediately after the call depends on the outcome — here, `setGameResult(result)` needs to show the results modal right away, and nothing on screen currently needs the backend's response first.
+
+Even without `await`, the `.catch(...)` chained onto the call is still doing real work: if the request fails and nothing handles that rejection, it becomes a silent "unhandled promise rejection" instead of a caught error you can log.
+
+### Why this matters
+This pattern — call, don't await, but still `.catch()` — is called "fire and forget," and it's the right shape for a side effect the UI doesn't need to block on. The moment you *do* need the result for something afterward (e.g. reading `score`/`calories_burned`/`new_achievements` off the response to display verified badges), that's the signal to switch to `await` (marking the enclosing function `async`) or a `.then(...)` — which is exactly the shape the badges/score display step will need later.
