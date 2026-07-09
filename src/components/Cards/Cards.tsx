@@ -24,7 +24,7 @@ type GameCardProps = HTMLAttributes<HTMLDivElement> & {
   description: string;
   ctaLabel?: string;
   disabled?: boolean;
-  onPlay?: () => void;
+  gameId: string;
 };
 
 function FeatureCard({ icon, title, description, className, ...rest }: FeatureCardProps) {
@@ -90,21 +90,20 @@ function GameCard({
   description,
   ctaLabel = "Play",
   disabled = false,
-  onPlay,
+  gameId,
   className,
   ...props
 }: GameCardProps) {
   const nav = useNavigate();
-  const gameNavigate = () => {
-    if (disabled) return;
-    onPlay?.();
-    nav("/level");
-  };
-
   const navLogin = () => {
     nav("/login");
   };
   const { isAuthenticated } = useAuth();
+
+  const gameNavigate = () => {
+    if (disabled) return;
+    nav("/level", { state: { gameId } });
+  };
 
   const cardClass = [styles.gameCard, disabled && styles.gameCardDisabled, className]
     .filter(Boolean)
@@ -117,29 +116,28 @@ function GameCard({
       <h3 className={styles.gameTitle}>{title}</h3>
       <p className={styles.gameExercise}>{exercise}</p>
       <p className={styles.gameDesc}>{description}</p>
+
       {isAuthenticated ? (
-        <>
-          <button
-            type="button"
-            className={styles.playBtn}
-            onClick={gameNavigate}
-            disabled={disabled}
-            aria-disabled={disabled}
+        <button
+          type="button"
+          className={styles.playBtn}
+          onClick={gameNavigate}
+          disabled={disabled}
+          aria-disabled={disabled}
+        >
+          {ctaLabel}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            {ctaLabel}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </button>
-        </>
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
       ) : (
         <button
           type="button"

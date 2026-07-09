@@ -1,15 +1,10 @@
 import { type ReactNode } from "react";
 import styles from "./WorkoutSection.module.css";
-
 import { GameCard } from "../Cards/Cards";
-
-type SelectWorkoutSectionProps = {
-  onPlay?: (gameId: string) => void;
-};
 
 const GAMESCARDARR = [
   {
-    id: "branch-hopper",
+    id: "dino-hopper",
     title: "Dino Hopper",
     exercise: "Squats",
     description: "Help the dino hop through the obstacles!",
@@ -27,7 +22,7 @@ const GAMESCARDARR = [
 ];
 
 const art: Record<string, ReactNode> = {
-  "branch-hopper": (
+  "dino-hopper": (
     <svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
       <defs>
         <linearGradient id="bhBg" x1="0" y1="0" x2="0" y2="1">
@@ -73,7 +68,7 @@ const art: Record<string, ReactNode> = {
   ),
 };
 
-function WorkoutSection({ onPlay }: SelectWorkoutSectionProps) {
+function WorkoutSection() {
   return (
     <section id="games" className={styles.games}>
       <div className={styles.gamesInner}>
@@ -84,13 +79,13 @@ function WorkoutSection({ onPlay }: SelectWorkoutSectionProps) {
           {GAMESCARDARR.map((game) => (
             <GameCard
               key={game.id}
+              gameId={game.id}
               media={art[game.id]}
               title={game.title}
               exercise={game.exercise}
               description={game.description}
               ctaLabel={game.ctaLabel}
               disabled={game.disabled}
-              onPlay={() => onPlay?.(game.id)}
             />
           ))}
         </div>
