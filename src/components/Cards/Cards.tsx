@@ -2,6 +2,7 @@ import type { ReactNode, RefObject, HTMLAttributes } from "react";
 import { useNavigate } from "react-router";
 import styles from "./Cards.module.css";
 import { useAuth } from "../../context/useAuth";
+import { useSelectedGame } from "../../context/useSelectedGame";
 
 export interface FeatureCardProps extends HTMLAttributes<HTMLDivElement> {
   icon: ReactNode;
@@ -99,10 +100,12 @@ function GameCard({
     nav("/login");
   };
   const { isAuthenticated } = useAuth();
+  const { setGameId } = useSelectedGame();
 
   const gameNavigate = () => {
     if (disabled) return;
-    nav("/level", { state: { gameId } });
+    setGameId(gameId);
+    nav("/level");
   };
 
   const cardClass = [styles.gameCard, disabled && styles.gameCardDisabled, className]

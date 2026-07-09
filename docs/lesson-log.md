@@ -582,3 +582,18 @@ Why did every detector (`squatDetector.tsx`, `armGestureDetector.tsx`) need a na
 
 ### Why this matters
 Any time a listener needs to be removable later, it can't be anonymous — this is a hard JS/DOM constraint, not a style preference. It's also what was silently causing the duplicate-listener stacking bug: every re-entry into the game called `initSquatDetector()` again, adding another anonymous listener with no way to ever clean up the previous one.
+
+---
+
+## Route `state` vs. Context: two different lifetimes for the same kind of data
+
+### Question
+The Level page's rep-goal numbers went blank after playing a round and returning — why, if the exercise data itself never left memory?
+
+### Answer
+Two different problems that look similar. The exercise data (`ExercisesContext`) was never the issue — it's a Provider wrapping the whole app in `main.tsx`, so it survives every navigation. What actually broke was `gameId`, which `Level.tsx` used to look up *which* exercise's difficulties to read out of that data. `gameId` was being passed through React Router's `nav(path, { state })` — and route `state` only exists for the single navigation call that set it. `Cards.tsx` set it once on the way *into* `/level`, but nothing carried it back out to `/exercise` and then back again through `Game.tsx`'s exit — so by the time the player returned to `/level`, `location.state` was empty and the lookup silently failed.
+
+The fix wasn't to re-thread `gameId` through every intermediate screen (including `Game.tsx`, which has no actual use for it) — it was to give `gameId` the same kind of home the exercise data already has: a small `SelectedGameContext`, set once when a game card is clicked, read directly by `Level.tsx` whenever it needs it. No component in between has to know it exists or forward it along.
+
+### Why this matters
+Route `state` is a **one-time handoff**, scoped to a single `nav()` call — treat it like a value you're handing off for exactly one trip, not something that persists. Context (or anything provider-scoped above the router) is **long-lived**, matching the app's lifetime instead of one navigation. The tell for which one to use: if a value only needs to survive from screen A to the very next screen B, route state is fine (like `exerciseDifficultyId` going from Level to Game). If a value needs to survive arbitrary navigation back and forth — especially through screens that have no real use for it — it belongs in context instead, the same way `AuthContext`/`ExercisesContext` already do for auth and exercise data.

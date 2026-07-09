@@ -1,14 +1,14 @@
 import styles from "./Level.module.css";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 import { useExercises } from "../../context/useExercises";
+import { useSelectedGame } from "../../context/useSelectedGame";
 
 function LevelSection() {
   const nav = useNavigate();
-  const location = useLocation();
-  const gameId = (location.state as { gameId: string } | null)?.gameId;
-  console.log("Level received gameId", gameId);
+  const { gameId } = useSelectedGame();
 
   const { exercises } = useExercises();
+
   const gameToExerciseMap: Record<string, string> = {
     "dino-hopper": "squat",
     "lily-leaper": "push-up",
