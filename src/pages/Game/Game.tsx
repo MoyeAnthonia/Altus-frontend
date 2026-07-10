@@ -11,6 +11,7 @@ import GameResultModal from "./GameResultModal";
 import GameIdleModal from "./GameIdleModal";
 import { useAuth } from "../../context/useAuth";
 import { saveWorkoutSession } from "../../api/workoutSessions";
+
 interface LocationState {
   difficulty: DifficultyKey;
   exerciseDifficultyId?: string;
