@@ -43,6 +43,10 @@ let isSquatting = false; // is the player currently in a squat?
 let squatFrameCount = 0; // consecutive frames hips have been low
 let lastSquatAt = 0; // timestamp of last confirmed squat
 
+function handlePoseEvent(e: Event) {
+  onSquatFrame((e as CustomEvent<MyPoseDetail>).detail);
+}
+
 /**
  * initSquatDetector(pose)
  *
@@ -52,10 +56,25 @@ let lastSquatAt = 0; // timestamp of last confirmed squat
  * @param pose  The MediaPipe Pose instance from initMediaPipe()
  */
 export function initSquatDetector() {
-  window.addEventListener("mv:pose", (e: Event) => {
-    onSquatFrame((e as CustomEvent<MyPoseDetail>).detail);
-  });
+  window.addEventListener("mv:pose", handlePoseEvent);
+
+  // Module state persists across mounts. If a previous session already
+  // calibrated, the block in onSquatFrame() that dispatches "mv:calibrated"
+  // won't run again — so re-announce it here for whoever just started
+  // listening (a fresh ExercisePage instance has no way to know otherwise).
+  if (isCalibrated) {
+    window.dispatchEvent(
+      new CustomEvent<MvCalibratedDetail>("mv:calibrated", { detail: { baselineY } }),
+    );
+  }
+
   console.log("[SquatDetector] Please stand still to calibrate...");
+}
+
+export function stopSquatDetector() {
+  window.removeEventListener("mv:pose", handlePoseEvent);
+  isSquatting = false;
+  squatFrameCount = 0;
 }
 
 /**

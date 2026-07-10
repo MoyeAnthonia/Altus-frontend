@@ -5,22 +5,19 @@
  */
 
 import { useEffect, useState } from "react";
-import { initMediaPipe } from "./mediapipePlayer";
-import { initJumpDetector } from "./jumpDetector";
-import { initSquatDetector } from "./squatDetector";
+import { initMediaPipe, stopMediaPipe } from "./mediapipePlayer";
+import { initSquatDetector, stopSquatDetector } from "./squatDetector";
 import type { MvCalibratedDetail } from "./squatDetector";
-
+import { initArmGestureDetector, stopArmGestureDetector } from "./armGestureDetector";
 interface UseMediaPipeReturn {
   isReady: boolean;
   isCalibrated: boolean;
-  lastMove: "jump" | "squat" | null;
   baselineY: number | null;
 }
 
 export function useMediaPipe({ enabled = false }: { enabled?: boolean } = {}): UseMediaPipeReturn {
   const [isReady, setIsReady] = useState(false);
   const [isCalibrated, setIsCalibrated] = useState(false);
-  const [lastMove, setLastMove] = useState<"jump" | "squat" | null>(null);
   const [baselineY, setBaselineY] = useState<number | null>(null);
 
   useEffect(() => {
@@ -29,8 +26,8 @@ export function useMediaPipe({ enabled = false }: { enabled?: boolean } = {}): U
     // Start camera + load MediaPipe, then attach both detectors
     initMediaPipe()
       .then(() => {
-        initJumpDetector();
         initSquatDetector();
+        initArmGestureDetector();
       })
       .catch((err) => {
         console.warn("[useMediaPipe] Failed to start:", err);
@@ -46,30 +43,18 @@ export function useMediaPipe({ enabled = false }: { enabled?: boolean } = {}): U
       setBaselineY(detail.baselineY);
     };
 
-    // When player jumps, Dino speeds up (GameScene handles the actual speed change)
-    const onJump = () => setLastMove("jump");
-
-    // When player squats, Dino jumps (GameScene handles the actual jump)
-    const onSquat = () => setLastMove("squat");
-
-    // Player standing back up
-    const onSquatEnd = () => setLastMove(null);
-
     window.addEventListener("mv:mediapipe-ready", onReady);
     window.addEventListener("mv:calibrated", onCalibrated);
-    window.addEventListener("mv:jump", onJump);
-    window.addEventListener("mv:squat:start", onSquat);
-    window.addEventListener("mv:squat:end", onSquatEnd);
 
     // Remove all listeners when component unmounts
     return () => {
       window.removeEventListener("mv:mediapipe-ready", onReady);
       window.removeEventListener("mv:calibrated", onCalibrated);
-      window.removeEventListener("mv:jump", onJump);
-      window.removeEventListener("mv:squat:start", onSquat);
-      window.removeEventListener("mv:squat:end", onSquatEnd);
+      stopArmGestureDetector();
+      stopSquatDetector();
+      stopMediaPipe();
     };
   }, [enabled]);
 
-  return { isReady, isCalibrated, lastMove, baselineY };
+  return { isReady, isCalibrated, baselineY };
 }

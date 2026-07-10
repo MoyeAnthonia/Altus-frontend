@@ -1,11 +1,39 @@
 import styles from "./Level.module.css";
 import { useNavigate } from "react-router";
+import { useExercises } from "../../context/useExercises";
+import { useSelectedGame } from "../../context/useSelectedGame";
 
 function LevelSection() {
   const nav = useNavigate();
+  const { gameId } = useSelectedGame();
 
-  const gameNavigate = (difficulty: "easy" | "medium" | "hard" | "score_attack") => {
-    nav("/exercise", { state: { difficulty } });
+  const { exercises } = useExercises();
+
+  const gameToExerciseMap: Record<string, string> = {
+    "dino-hopper": "squat",
+    "lily-leaper": "push-up",
+  };
+
+  const exerciseName = gameToExerciseMap[gameId ?? ""];
+  const selectedExercise = exercises.find(
+    (exercise) => exercise.name.toLowerCase() === exerciseName,
+  );
+  const easyDifficulty = selectedExercise?.difficulties.find(
+    (difficulty) => difficulty.level_name === "Easy",
+  );
+
+  const mediumDifficulty = selectedExercise?.difficulties.find(
+    (difficulty) => difficulty.level_name === "Medium",
+  );
+
+  const hardDifficulty = selectedExercise?.difficulties.find(
+    (difficulty) => difficulty.level_name === "Hard",
+  );
+  const gameNavigate = (
+    difficulty: "easy" | "medium" | "hard" | "score_attack",
+    exerciseDifficultyId?: string,
+  ) => {
+    nav("/exercise", { state: { difficulty, exerciseDifficultyId } });
   };
 
   return (
@@ -29,11 +57,11 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Easy – 10 push-ups"
-            onClick={() => gameNavigate("easy")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("easy")}
+            onClick={() => gameNavigate("easy", easyDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("easy", easyDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Easy</span>
-            <span className={styles.lsCardCount}>10</span>
+            <span className={styles.lsCardCount}>{easyDifficulty?.target_reps}</span>
             <span className={styles.lsCardUnit}>Squats</span>
             <p className={styles.lsCardDesc}>Perfect for beginners</p>
             <div className={styles.lsCardDots} aria-label="Difficulty: 1 of 3">
@@ -49,11 +77,11 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Medium – 20 push-ups"
-            onClick={() => gameNavigate("medium")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("medium")}
+            onClick={() => gameNavigate("medium", mediumDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("medium", mediumDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Medium</span>
-            <span className={styles.lsCardCount}>20</span>
+            <span className={styles.lsCardCount}>{mediumDifficulty?.target_reps}</span>
             <span className={styles.lsCardUnit}>Squats</span>
             <p className={styles.lsCardDesc}>A solid workout</p>
             <div className={styles.lsCardDots} aria-label="Difficulty: 2 of 3">
@@ -69,11 +97,11 @@ function LevelSection() {
             role="button"
             tabIndex={0}
             aria-label="Hard – 40 push-ups"
-            onClick={() => gameNavigate("hard")}
-            onKeyDown={(e) => e.key === "Enter" && gameNavigate("hard")}
+            onClick={() => gameNavigate("hard", hardDifficulty?.id)}
+            onKeyDown={(e) => e.key === "Enter" && gameNavigate("hard", hardDifficulty?.id)}
           >
             <span className={styles.lsCardLevel}>Hard</span>
-            <span className={styles.lsCardCount}>40</span>
+            <span className={styles.lsCardCount}>{hardDifficulty?.target_reps}</span>{" "}
             <span className={styles.lsCardUnit}>Squats</span>
             <p className={styles.lsCardDesc}>For the dedicated</p>
             <div className={styles.lsCardDots} aria-label="Difficulty: 3 of 3">

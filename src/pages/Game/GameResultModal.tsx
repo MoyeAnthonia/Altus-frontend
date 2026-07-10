@@ -57,7 +57,7 @@ export default function GameResultModal({ result, onRetry, onExit }: Props) {
         {/* Buttons */}
         <div className={styles.actions}>
           <button className={styles.retryBtn} onClick={onRetry}>
-            Squat to Retry
+            Right Arm Up to Play Again
           </button>
           <button className={styles.exitBtn} onClick={onExit}>
             ← Change Difficulty
