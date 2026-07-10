@@ -26,6 +26,11 @@ const VISIBILITY_OK = 0.6;
 function ExercisePage() {
   const nav = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Holds the preview stream so we can stop it manually — a MediaStream's
+  // tracks keep the camera hardware active even after the <video> element
+  // showing it unmounts, unless something explicitly calls track.stop().
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraFailed, setCameraFailed] = useState(false);
@@ -40,6 +45,18 @@ function ExercisePage() {
   const [gameKey, setGameKey] = useState(0);
 
   const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
+
+  useEffect(() => {
+    const onUp = () => console.log("✅ confirm detected");
+    const onDown = () => console.log("🛑 cancel detected");
+    window.addEventListener("mv:confirm", onUp);
+    window.addEventListener("mv:cancel", onDown);
+
+    return () => {
+      window.removeEventListener("mv:confirm", onUp);
+      window.removeEventListener("mv:cancel", onDown);
+    };
+  }, []);
 
   // Read live pose landmarks to score "body in frame" and "good lighting"
   useEffect(() => {
@@ -112,9 +129,19 @@ function ExercisePage() {
     return () => clearTimeout(timer);
   }, [allReady, hasStarted]);
 
+  // Stop the camera when this page unmounts — back button, "Change
+  // Difficulty", or any other navigation away. Without this the webcam
+  // stays on in the background since nothing else holds a reference to it.
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setIsCameraOpen(true);

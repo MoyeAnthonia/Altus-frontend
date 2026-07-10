@@ -36,7 +36,7 @@ export default function GameIdleModal({ difficulty, repGoal }: Props) {
             lineHeight: 1.8,
           }}
         >
-          SQUAT TO START
+          RIGHT ARM UP TO START
         </p>
       </div>
     </div>

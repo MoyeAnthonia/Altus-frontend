@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   DinoRunGame,
@@ -9,44 +9,61 @@ import {
 import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 import GameResultModal from "./GameResultModal";
 import GameIdleModal from "./GameIdleModal";
+import { useAuth } from "../../context/useAuth";
+import { saveWorkoutSession } from "../../api/workoutSessions";
 
 interface LocationState {
   difficulty: DifficultyKey;
+  exerciseDifficultyId?: string;
 }
 
 function GamePage() {
+  const { token } = useAuth();
   const location = useLocation();
   const nav = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const repCountRef = useRef(0);
   const gameRef = useRef<DinoRunGame | null>(null);
   const [gameResult, setGameResult] = useState<GameEndResult | null>(null);
   const [isIdle, setIsIdle] = useState(false);
 
-  const difficulty = (location.state as LocationState)?.difficulty ?? "medium";
-  const diffConfig = DIFFICULTIES[difficulty];
+  const { difficulty, exerciseDifficultyId } = (location.state as LocationState) ?? {};
+  const activeDifficulty = difficulty ?? "medium";
+  const diffConfig = DIFFICULTIES[activeDifficulty];
 
   useMediaPipe();
 
-  // Memoized so its identity only changes when `difficulty` does.
-  // State setters (setIsIdle, setGameResult) are guaranteed stable by React,
-  // so they don't need to be listed as dependencies.
-  const bootGame = useCallback(
-    (canvas: HTMLCanvasElement) => {
-      gameRef.current = new DinoRunGame({
-        canvas,
-        difficulty,
-        onGameIdle: () => {
-          setIsIdle(true);
-          setGameResult(null);
-        },
-        onGameStart: () => setIsIdle(false),
-        onGameEnd: (result: GameEndResult) => {
-          setGameResult(result);
-        },
-      });
-    },
-    [difficulty],
-  );
+  const bootGame = (canvas: HTMLCanvasElement) => {
+    gameRef.current = new DinoRunGame({
+      canvas,
+      difficulty: activeDifficulty,
+      onGameIdle: () => {
+        setIsIdle(true);
+        setGameResult(null);
+      },
+      onGameStart: () => setIsIdle(false),
+      onGameEnd: (result: GameEndResult) => {
+        setGameResult(result);
+
+        if (token && exerciseDifficultyId) {
+          saveWorkoutSession(token, {
+            exercise_difficulty_id: exerciseDifficultyId,
+            reps_completed: repCountRef.current,
+            duration_seconds: Math.round(result.secs),
+          }).catch((err) => console.error("Failed to save workout session:", err));
+        }
+      },
+      onExitRequested: handleExit,
+    });
+  };
+
+  useEffect(() => {
+    const onSquat = () => {
+      repCountRef.current += 1;
+    };
+    window.addEventListener("mv:squat:start", onSquat);
+    return () => window.removeEventListener("mv:squat:start", onSquat);
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -62,9 +79,10 @@ function GamePage() {
       gameRef.current?.destroy();
       gameRef.current = null;
     };
-  }, [bootGame]);
+  }, [difficulty]);
 
   const handleRetry = () => {
+    repCountRef.current = 0;
     setGameResult(null);
     gameRef.current?.destroy();
     gameRef.current = null;

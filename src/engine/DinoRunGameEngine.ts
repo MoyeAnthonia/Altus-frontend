@@ -86,6 +86,7 @@ export interface DinoRunGameOptions {
   onGameEnd?: (result: GameEndResult) => void;
   onGameStart?: () => void;
   onGameIdle?: () => void;
+  onExitRequested?: () => void;
 }
 
 // ── State machine ────────────────────────────────────────────────────────
@@ -332,40 +333,23 @@ function drawDino(
   ctx.fillRect(x + 12 * P, y + 10 * P, P, 2 * P);
 
   // ── LEGS ──────────────────────────────────────────────────────────────
-  const leftLeg = (striding: boolean) => {
-    // Upper leg — same in both poses
+  const leftLeg = (_extended: boolean) => {
     ctx.fillStyle = bk;
     ctx.fillRect(x + 6 * P, y + 17 * P, 3 * P, P);
     ctx.fillRect(x + 5 * P, y + 18 * P, P, 3 * P);
     ctx.fillRect(x + 8 * P, y + 18 * P, P, 2 * P);
-    if (striding) {
-      // Extended: leg reaches down, foot planted on the ground (row y+24)
-      ctx.fillRect(x + 5 * P, y + 21 * P, P, 3 * P);
-      ctx.fillRect(x + 7 * P, y + 20 * P, P, 4 * P);
-      ctx.fillRect(x + 6 * P, y + 24 * P, P, P);
-      ctx.fillRect(x + 7 * P, y + 24 * P, 4 * P, P);
-      ctx.fillRect(x + 10 * P, y + 23 * P, P, P);
-      ctx.fillStyle = m;
-      ctx.fillRect(x + 6 * P, y + 17 * P, 2 * P, P);
-      ctx.fillRect(x + 6 * P, y + 18 * P, 2 * P, 2 * P);
-      ctx.fillRect(x + 6 * P, y + 20 * P, P, 4 * P);
-      ctx.fillRect(x + 7 * P, y + 23 * P, 3 * P, P);
-      ctx.fillStyle = d;
-      ctx.fillRect(x + 6 * P, y + 18 * P, P, 3 * P);
-    } else {
-      // Tucked: knee bent, foot lifted two pixel-rows off the ground (row y+22)
-      ctx.fillRect(x + 5 * P, y + 21 * P, P, 2 * P);
-      ctx.fillRect(x + 7 * P, y + 20 * P, P, 2 * P);
-      ctx.fillRect(x + 6 * P, y + 22 * P, 4 * P, P);
-      ctx.fillRect(x + 9 * P, y + 21 * P, P, P);
-      ctx.fillStyle = m;
-      ctx.fillRect(x + 6 * P, y + 17 * P, 2 * P, P);
-      ctx.fillRect(x + 6 * P, y + 18 * P, 2 * P, 2 * P);
-      ctx.fillRect(x + 6 * P, y + 20 * P, P, 2 * P);
-      ctx.fillRect(x + 7 * P, y + 21 * P, 2 * P, P);
-      ctx.fillStyle = d;
-      ctx.fillRect(x + 6 * P, y + 18 * P, P, 3 * P);
-    }
+    ctx.fillRect(x + 5 * P, y + 21 * P, P, 3 * P);
+    ctx.fillRect(x + 7 * P, y + 20 * P, P, 4 * P);
+    ctx.fillRect(x + 6 * P, y + 24 * P, P, P);
+    ctx.fillRect(x + 7 * P, y + 24 * P, 4 * P, P);
+    ctx.fillRect(x + 10 * P, y + 23 * P, P, P);
+    ctx.fillStyle = m;
+    ctx.fillRect(x + 6 * P, y + 17 * P, 2 * P, P);
+    ctx.fillRect(x + 6 * P, y + 18 * P, 2 * P, 2 * P);
+    ctx.fillRect(x + 6 * P, y + 20 * P, P, 4 * P);
+    ctx.fillRect(x + 7 * P, y + 23 * P, 3 * P, P);
+    ctx.fillStyle = d;
+    ctx.fillRect(x + 6 * P, y + 18 * P, P, 3 * P);
   };
 
   const rightLeg = (striding: boolean) => {
@@ -487,6 +471,7 @@ export class DinoRunGame {
   private onGameEnd: (result: GameEndResult) => void;
   private onGameStart: () => void;
   private onGameIdle: () => void;
+  private onExitRequested: () => void;
   private hasRunBefore = false;
   private sm: StateMachine;
   private keys: Record<string, boolean> = {};
@@ -518,6 +503,8 @@ export class DinoRunGame {
   private _onKeyUp: (e: KeyboardEvent) => void;
   private _onMouseDown: () => void;
   private _onMvSquat: () => void;
+  private _onMvConfirm: () => void;
+  private _onMvCancel: () => void;
   private _onMvCalibrated: () => void;
 
   constructor(opts: DinoRunGameOptions) {
@@ -533,6 +520,7 @@ export class DinoRunGame {
     this.onGameEnd = opts.onGameEnd ?? (() => {});
     this.onGameStart = opts.onGameStart ?? (() => {});
     this.onGameIdle = opts.onGameIdle ?? (() => {});
+    this.onExitRequested = opts.onExitRequested ?? (() => {});
 
     this.sm = new StateMachine("IDLE");
     this.sm.on("CALIBRATING", () => this.onCalibrating());
@@ -549,21 +537,24 @@ export class DinoRunGame {
     this._onMouseDown = () => {};
 
     this._onMvSquat = () => {
-      console.log("[Game] Squat event received, current state:", this.sm.current);
+      if (this.sm.is("ACTIVE")) {
+        this.handleJump();
+      }
+    };
+
+    this._onMvConfirm = () => {
       if (this.sm.is("IDLE")) {
         this.sm.transition("CALIBRATING");
         return;
       }
-      if (this.sm.is("GAME_OVER")) {
+      if (this.sm.is("GAME_OVER") || this.sm.is("WIN")) {
         this.restart();
-        return;
       }
-      if (this.sm.is("WIN")) {
-        this.restart();
-        return;
-      }
-      if (this.sm.is("ACTIVE")) {
-        this.handleJump();
+    };
+
+    this._onMvCancel = () => {
+      if (this.sm.is("GAME_OVER") || this.sm.is("WIN")) {
+        this.onExitRequested();
       }
     };
 
@@ -575,6 +566,8 @@ export class DinoRunGame {
     window.addEventListener("keyup", this._onKeyUp);
     this.canvas.addEventListener("mousedown", this._onMouseDown);
     window.addEventListener("mv:squat:start", this._onMvSquat);
+    window.addEventListener("mv:confirm", this._onMvConfirm);
+    window.addEventListener("mv:cancel", this._onMvCancel);
     window.addEventListener("mv:calibrated", this._onMvCalibrated);
 
     this.reset();
@@ -937,6 +930,8 @@ export class DinoRunGame {
     window.removeEventListener("keyup", this._onKeyUp);
     this.canvas.removeEventListener("mousedown", this._onMouseDown);
     window.removeEventListener("mv:squat:start", this._onMvSquat);
+    window.removeEventListener("mv:confirm", this._onMvConfirm);
+    window.removeEventListener("mv:cancel", this._onMvCancel);
     window.removeEventListener("mv:calibrated", this._onMvCalibrated);
   }
 }

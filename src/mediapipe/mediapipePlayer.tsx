@@ -24,6 +24,24 @@ export interface MyPoseDetail {
   poseWorldLandmarks: Landmark[];
 }
 
+let currentVideo: HTMLVideoElement | null = null;
+let currentStream: MediaStream | null = null;
+let currentPoseLandmarker: PoseLandmarker | null = null;
+let rafId: number | null = null;
+
+export function stopMediaPipe(): void {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  currentStream?.getTracks().forEach((track) => track.stop());
+  currentStream = null;
+  currentPoseLandmarker?.close();
+  currentPoseLandmarker = null;
+  currentVideo?.remove();
+  currentVideo = null;
+}
+
 export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) {
   const video = document.createElement("video");
   video.setAttribute("playsinline", "");
@@ -50,6 +68,8 @@ export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) 
     outputSegmentationMasks: false,
   });
 
+  currentPoseLandmarker = poseLandmarker;
+
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: 640, height: 480 },
   });
@@ -57,7 +77,10 @@ export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) 
   await new Promise<void>((resolve) => {
     video.addEventListener("loadeddata", () => resolve(), { once: true });
   });
+
   video.play();
+  currentVideo = video;
+  currentStream = stream;
 
   let drawingUtils: DrawingUtils | null = null;
   let lastTs = -1;
@@ -102,10 +125,11 @@ export async function initMediaPipe({ onReady }: { onReady?: () => void } = {}) 
       }
     }
 
-    requestAnimationFrame(processFrame);
+    rafId = requestAnimationFrame(processFrame);
   }
 
-  requestAnimationFrame(processFrame);
+  rafId = requestAnimationFrame(processFrame);
+
   window.dispatchEvent(new CustomEvent("mv:mediapipe-ready"));
   onReady?.();
 
