@@ -597,3 +597,21 @@ The fix wasn't to re-thread `gameId` through every intermediate screen (includin
 
 ### Why this matters
 Route `state` is a **one-time handoff**, scoped to a single `nav()` call — treat it like a value you're handing off for exactly one trip, not something that persists. Context (or anything provider-scoped above the router) is **long-lived**, matching the app's lifetime instead of one navigation. The tell for which one to use: if a value only needs to survive from screen A to the very next screen B, route state is fine (like `exerciseDifficultyId` going from Level to Game). If a value needs to survive arbitrary navigation back and forth — especially through screens that have no real use for it — it belongs in context instead, the same way `AuthContext`/`ExercisesContext` already do for auth and exercise data.
+
+---
+
+## Merging `dev` into a feature branch doesn't keep them independent — and can silently combine mismatched code
+
+### Question
+After merging `dev` into this branch (choosing "accept incoming" on conflicts) and pushing, the confirm-gesture-to-start flow broke — raising an arm kept snapping back to the start screen. `Game.tsx` looked the same on both branches when checked separately. What happened?
+
+### Answer
+Two misunderstandings stacked up:
+
+1. **Merging `dev` in is the opposite of staying independent.** `git merge dev` pulls dev's commits into the current branch's history — after the merge, the branch contains the union of both. There's no "merge but keep separate" option; if independence is wanted, the merge itself has to be skipped.
+2. **"Accept incoming" is a per-conflict choice, not a whole-file or whole-branch one.** For each spot where both branches touched the same lines differently, incoming = dev's version, current/ours = this branch's version. Picking incoming for one conflicting hunk doesn't affect unrelated hunks elsewhere in the same file.
+
+The actual bug came from that second point. Checking the merge commit directly (`git show <merge-commit> -- path/to/file`) showed dev had independently fixed the same `bootGame`-identity problem, but with a different, also-valid approach: wrapping `bootGame` in `useCallback(..., [difficulty])` and depending on `[bootGame]`. This branch had a different valid approach: a plain `bootGame` depending on `[difficulty]` directly. The import line, the `useCallback` wrapping, and the effect's dependency array are three separate, non-adjacent regions of the file — git treated them as independent, non-conflicting hunks and combined them without ever flagging a conflict: it kept *this branch's* plain, unmemoized `bootGame` body (good — that's the version with all the session's feature work), but took *dev's* `useCallback` import and `[bootGame]` dependency line. Those two halves don't work together — an unmemoized function depended on as `[bootGame]` re-creates the game engine on every render, which is exactly what caused the "snaps back to start" symptom.
+
+### Why this matters
+A merge can complete with **zero conflict markers** and still be semantically broken, if two branches solved the same problem differently in ways that touch non-overlapping lines. Git only flags a conflict when both sides changed the *exact same* lines — it has no concept of "these three separate edits only make sense together." After merging a branch that touched the same feature/file you were working on, it's worth deliberately re-reading the result (not just checking it builds), especially anywhere both branches were likely to have solved the same problem independently. And since this merge was already pushed through a PR to a shared branch, the right move was to fix forward with a new commit — not rewrite already-shared history.

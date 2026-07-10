@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   DinoRunGame,
@@ -78,7 +78,7 @@ function GamePage() {
       gameRef.current?.destroy();
       gameRef.current = null;
     };
-  }, [bootGame]);
+  }, [difficulty]);
 
   const handleRetry = () => {
     repCountRef.current = 0;
