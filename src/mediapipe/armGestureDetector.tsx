@@ -25,7 +25,6 @@ function handlePoseEvent(e: Event) {
 
 export function initArmGestureDetector() {
   window.addEventListener("mv:pose", handlePoseEvent);
-  console.log("[ArmGestureDetector] Ready to see your arms!");
 }
 
 export function stopArmGestureDetector() {
@@ -59,6 +58,5 @@ function onPoseFrame(results: MyPoseDetail) {
   if (detected && confirmCount >= CONFIRM_FRAMES && now - lastTriggerAt > COOLDOWN_MS) {
     lastTriggerAt = now;
     window.dispatchEvent(new CustomEvent(`mv:${detected}`));
-    console.log(`[ArmGestureDetector] ${detected}!`);
   }
 }

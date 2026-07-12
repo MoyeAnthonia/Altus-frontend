@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import Button from "../../components/Button/Button";
 import { MotionCard } from "../../components/Cards/Cards";
-import GameOverModal, { type GameOverStats } from "../../components/Modal/Modal";
 import { useMediaPipe } from "../../mediapipe/useMediaPipe";
 import type { MyPoseDetail } from "../../mediapipe/mediapipePlayer";
 
@@ -39,24 +38,7 @@ function ExercisePage() {
   const [bodyInFrame, setBodyInFrame] = useState(false);
   const [goodLighting, setGoodLighting] = useState(false);
 
-  // Game over state: null = game still running (or not started yet)
-  const [gameOverStats, setGameOverStats] = useState<GameOverStats | null>(null);
-  // Bumping this key remounts <GamePage />, giving us a fresh run on retry
-  const [gameKey, setGameKey] = useState(0);
-
   const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
-
-  useEffect(() => {
-    const onUp = () => console.log("✅ confirm detected");
-    const onDown = () => console.log("🛑 cancel detected");
-    window.addEventListener("mv:confirm", onUp);
-    window.addEventListener("mv:cancel", onDown);
-
-    return () => {
-      window.removeEventListener("mv:confirm", onUp);
-      window.removeEventListener("mv:cancel", onDown);
-    };
-  }, []);
 
   // Read live pose landmarks to score "body in frame" and "good lighting"
   useEffect(() => {
@@ -79,21 +61,6 @@ function ExercisePage() {
     window.addEventListener("mv:pose", onPose);
     return () => window.removeEventListener("mv:pose", onPose);
   }, [cameraEnabled]);
-
-  // Listen for the game announcing that a run has ended.
-  // GamePage dispatches "mv:gameover" with the run's stats — same
-  // window-event pattern as "mv:pose", so the game stays decoupled
-  // from the page that hosts it.
-  useEffect(() => {
-    if (!hasStarted) return;
-
-    const onGameOver = (e: Event) => {
-      setGameOverStats((e as CustomEvent<GameOverStats>).detail);
-    };
-
-    window.addEventListener("mv:gameover", onGameOver);
-    return () => window.removeEventListener("mv:gameover", onGameOver);
-  }, [hasStarted]);
 
   const checkItems: CheckItem[] = [
     {
@@ -155,15 +122,6 @@ function ExercisePage() {
   };
 
   const profileNavigate = () => {
-    nav("/profile");
-  };
-
-  const handlePlayAgain = () => {
-    setGameOverStats(null);
-    setGameKey((k: number) => k + 1); // fresh mount = fresh game state
-  };
-
-  const handleGoToDashboard = () => {
     nav("/profile");
   };
 
@@ -243,16 +201,7 @@ function ExercisePage() {
         ) : (
           <div className={styles.gphGameCol}>
             <div className={styles.gphGame}>
-              <GamePage key={gameKey} />
-
-              <GameOverModal
-                isOpen={gameOverStats !== null}
-                stats={
-                  gameOverStats ?? { baseScore: 0, repStreak: 0, timeSeconds: 0, finalScore: 0 }
-                }
-                onPlayAgain={handlePlayAgain}
-                onDashboard={handleGoToDashboard}
-              />
+              <GamePage />
             </div>
             <button className={styles.gphGameBackBtn} onClick={profileNavigate}>
               Go To Dashboard →

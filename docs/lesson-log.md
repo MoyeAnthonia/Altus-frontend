@@ -3,9 +3,13 @@
 This file captures the main concepts we discussed while mapping the frontend to the backend.
 It is written as a study note so you can come back to it later and follow the reasoning, not just copy code.
 
+Entries are grouped by topic category, not by the order they came up in — each category reads as its own thread you can follow independently.
+
 ---
 
-## 1. What the frontend is doing today
+# Category: Project Context & Planning
+
+## What the frontend is doing today
 
 ### Question
 What is the current frontend flow?
@@ -25,7 +29,7 @@ Before changing anything, you need to understand what is already static and what
 
 ---
 
-## 2. API mapping plan
+## API mapping plan
 
 ### Question
 Why create an API mapping plan document first?
@@ -49,44 +53,60 @@ A plan keeps the implementation focused and prevents random UI-first coding.
 
 ---
 
-## 3. Step 1: Create the exercises API client
+## Why some exercises stay hardcoded for now
 
 ### Question
-What is the first code step?
+Why not make every workout dynamic now?
 
 ### Answer
-Create a file like `src/api/exercises.ts` that knows how to call `GET /exercises`.
-
-It should contain:
-- `ExerciseDifficulty` type
-- `Exercise` type
-- `getExercises(token)` function
-
-Example shape:
-
-```ts
-export type ExerciseDifficulty = {
-  id: string;
-  level_name: string;
-  target_reps: number;
-  score_multiplier: number;
-};
-
-export type Exercise = {
-  id: string;
-  name: string;
-  description: string;
-  calories_per_rep: number;
-  difficulties: ExerciseDifficulty[];
-};
-```
+Because only squats are part of the working backend flow right now.
+The other exercises are future placeholders.
 
 ### Why this matters
-This file is the bridge between frontend and backend. If you do not know the backend shape, you cannot store or pass the right ids later.
+You can keep the current UI stable while wiring only the working squat path to backend ids.
 
 ---
 
-## 4. The `??` operator
+## Main implementation order
+
+### Question
+What should be built next, in order?
+
+### Answer
+1. Create the exercises API helper.
+2. Create the exercises context.
+3. Wrap the app in the provider.
+4. Use the exercises data in the squat flow.
+5. Pass exercise and difficulty ids through the game flow.
+6. Save the session using raw workout results.
+
+### Why this matters
+This order keeps the work small and understandable.
+
+---
+
+## Current lesson summary
+
+### What I should remember
+- API client first, UI second.
+- Backend ids matter more than display labels.
+- Auth state and exercise state should be separate.
+- `useEffect` runs code, `useCallback` remembers functions, `useMemo` remembers values.
+- `??` provides a fallback when a value is missing.
+
+---
+
+## Notes for later
+
+- Keep future workout cards static until they are part of the backend flow.
+- Use the backend response as the source of truth for squat difficulty ids.
+- When session saving is added, the backend should calculate score and achievements.
+
+---
+
+# Category: JavaScript Fundamentals
+
+## The `??` operator
 
 ### Question
 What does `??` mean?
@@ -113,7 +133,77 @@ It gives the frontend a safe fallback message.
 
 ---
 
-## 5. `useCallback`, `useMemo`, and `useEffect`
+## JS object shorthand property gotcha
+
+### Question
+Why did `{ canvas, activeDifficulty }` cause a type error in `Game.tsx`?
+
+### Answer
+`{ activeDifficulty }` is object shorthand for `{ activeDifficulty: activeDifficulty }` — it creates a key with the exact same name as the variable. But `DinoRunGameOptions` expects a key called `difficulty`, not `activeDifficulty`. Renaming a local variable doesn't rename the field the API/options type expects.
+
+### Why this matters
+Whenever a local variable's name doesn't match the field name the function/type expects, you must write the key explicitly: `{ difficulty: activeDifficulty }`. Shorthand only works when the names already match.
+
+---
+
+## Calling an `async` function without `await` ("fire and forget")
+
+### Question
+`saveWorkoutSession` is declared `async`. Why do we call it without `await` inside `onGameEnd`?
+
+### Answer
+`async` only guarantees the function returns a `Promise` — it does not force whoever calls it to wait. `await` is a separate, optional choice made at the call site. Not awaiting means: "start this now, but don't pause here for the result." That's fine when nothing that runs immediately after the call depends on the outcome — here, `setGameResult(result)` needs to show the results modal right away, and nothing on screen currently needs the backend's response first.
+
+Even without `await`, the `.catch(...)` chained onto the call is still doing real work: if the request fails and nothing handles that rejection, it becomes a silent "unhandled promise rejection" instead of a caught error you can log.
+
+### Why this matters
+This pattern — call, don't await, but still `.catch()` — is called "fire and forget," and it's the right shape for a side effect the UI doesn't need to block on. The moment you *do* need the result for something afterward (e.g. reading `score`/`calories_burned`/`new_achievements` off the response to display verified badges), that's the signal to switch to `await` (marking the enclosing function `async`) or a `.then(...)` — which is exactly the shape the badges/score display step will need later.
+
+---
+
+## You can't `removeEventListener` an anonymous function
+
+### Question
+Why did every detector (`squatDetector.tsx`, `armGestureDetector.tsx`) need a named `handlePoseEvent` function instead of the inline arrow function they had before?
+
+### Answer
+`removeEventListener` only removes a listener if you pass the *exact same function reference* that was passed to `addEventListener`. An inline arrow function (`(e) => onSquatFrame(...)`) creates a brand-new function object every time it's written — even textually identical code — so there's no way to ever refer back to "that one" to remove it. Pulling it out to a named, module-level `function handlePoseEvent(e) {...}` gives both `addEventListener` and `removeEventListener` the same reference to point at.
+
+### Why this matters
+Any time a listener needs to be removable later, it can't be anonymous — this is a hard JS/DOM constraint, not a style preference. It's also what was silently causing the duplicate-listener stacking bug: every re-entry into the game called `initSquatDetector()` again, adding another anonymous listener with no way to ever clean up the previous one.
+
+---
+
+## `Record<string, string>` for a typed name-to-icon lookup
+
+### Question
+How do you type an object that maps achievement names to emoji, so `BADGE_ICONS[a.name]` type-checks?
+
+### Answer
+`Record<string, string>` says "an object where every key and every value is a `string`" — TypeScript's built-in utility type for exactly this shape, rather than writing out a long union of literal key names. Paired with `??` for the miss case:
+
+```ts
+const BADGE_ICONS: Record<string, string> = {
+  "First Workout": "🐣",
+  "Century": "💯",
+  // ...
+};
+
+function getBadgeIcon(name: string): string {
+  return BADGE_ICONS[name] ?? "🏅";
+}
+```
+
+Without the `Record<string, string>` annotation, TypeScript would still infer a workable object type from the literal, but indexing it with an arbitrary `string` (like `a.name`, which TypeScript can't know in advance matches one of the literal keys) would be a type error — `Record` is what makes "look up by any string, get a string or `undefined`-shaped fallback" valid.
+
+### Why this matters
+Same `??` fallback pattern from earlier (error messages), applied to a lookup table instead of a caught error — a name that isn't one of the 12 known achievements falls back to a generic icon instead of rendering `undefined`.
+
+---
+
+# Category: React Hooks & Rendering
+
+## `useCallback`, `useMemo`, and `useEffect`
 
 ### Question
 Why do these hooks seem similar?
@@ -151,10 +241,10 @@ Without them, React can recreate functions and objects on every render, which ca
 
 ---
 
-## 6. What “every render” means
+## What "every render" means
 
 ### Question
-What does “every render” mean in React?
+What does "every render" mean in React?
 
 ### Answer
 A render happens when React runs the component function again because:
@@ -169,7 +259,107 @@ React compares references. A new function or object can make dependencies look c
 
 ---
 
-## 7. Shared exercises context
+## `useEffect`: dependency array vs. cleanup function
+
+### Question
+If the dependency array is `[]`, does the effect only run once — does that mean we can only count one repetition?
+
+### Answer
+Two separate things:
+- The dependency array controls how many times the **setup code** runs. `[]` means "run once, when the component mounts, never again."
+- That setup code can attach an **event listener**, which is ongoing — it fires every time the event happens, not just once. So the rep counter's listener can fire 15+ times in one game even though the effect that attached it only ran once.
+
+The `return () => ...` inside a `useEffect` is a **cleanup function**. React calls it automatically right before the component unmounts (or before re-running the effect again, if dependencies had changed). For the rep counter, cleanup removes the same listener that was added.
+
+### Why this matters
+`window` outlives any single component instance. Without cleanup, every remount (e.g. every retry) would stack a new listener on top of old ones that were never removed — a leak, and a source of bugs if the leftover listener ever touches `setState`.
+
+---
+
+## `useRef` vs `useState` — when to use which
+
+### Question
+Why is the rep counter a `useRef` and not a `useState`?
+
+### Answer
+`useState` triggers a re-render every time it changes. `useRef` just holds a mutable value across renders without causing one. The rep count doesn't need to show up live on screen — it's only read once, at the moment the game ends — so `useRef` avoids dozens of wasted re-renders during a single run.
+
+### Why this matters
+General rule: if a value needs to appear in the UI, use `useState`. If it's just bookkeeping you'll read later, use `useRef`.
+
+---
+
+## `useEffect` dependency arrays: calling a function vs. listing it as a dependency are two different things
+
+### Question
+`ProfileContext.tsx`'s `useEffect` both calls `refreshProfile()` in its body *and* lists `refreshProfile` in its dependency array — isn't that circular? And does every function called inside a `useEffect` need to be in that array?
+
+### Answer
+Not circular — the two uses of `refreshProfile` mean different things:
+- **Calling it in the body** just executes the function, same as calling any function anywhere.
+- **Listing it in the dependency array** means "re-run this whole effect if this *reference* differs from last render" — it's an instruction about when to re-fire, not a description of what happens inside.
+
+The part that made this click: a plain function defined during render (not wrapped in `useCallback`) is a **new object in memory on every render**, even with zero code changes — JS creates a fresh function value every time that line of code runs. React's dependency comparison checks reference equality, not "does the code look the same." So `refreshProfile` genuinely does change identity — but only when `useCallback`'s own dependency (`[token]`) changes, i.e. at login/logout — because `useCallback` is deliberately holding that reference stable everywhere else.
+
+Why not just depend on `isAuthenticated` alone, since it changes at the same moment as `token` today? Because the effect's body actually *reads* `refreshProfile`, and ESLint's `react-hooks/exhaustive-deps` rule requires listing every reactive value an effect reads, not just the one that seems like "the real trigger." The concrete risk: if a future feature added silent token refresh (new token issued for a still-logged-in user, so `isAuthenticated` never flips), an effect that only watched `isAuthenticated` would keep calling a *stale* `refreshProfile` closure — one still holding the old token — because nothing would tell it to re-run. Listing `refreshProfile` now makes the effect correct regardless of whether `isAuthenticated` and `token` always change in lockstep in the future.
+
+**Not every function called inside a `useEffect` needs to be listed, though** — only ones that are reactive (created during render, and capable of actually changing identity). Concrete counterexamples sitting in the same file: inside `refreshProfile` itself, `getWorkoutSessions`/`getAchievements` (plain module imports — one instance for the whole app's life, never recreated) and `setSessions`/`setStats`/`setAchievements`/`setError`/`setIsLoading` (React-guaranteed-stable `useState` setters) are all called but **not** listed in `refreshProfile`'s own `useCallback([token])` array — because neither category can ever change reference, so there's nothing for a dependency array to watch.
+
+### Why this matters
+The refined rule: a function needs to be in a dependency array only if it was created inside the component during render *and* its identity can actually change (not wrapped in `useCallback`, or wrapped with its own changing deps). Module-level imports and `useState` setters are exempt because React/JS already guarantees their stability — nothing to react to.
+
+---
+
+## You never call a component function yourself — React does
+
+### Question
+`<ProfileProvider>` wraps the app in `main.tsx`, but nowhere does the code write `ProfileProvider()` as an actual function call. How does its body — and the `useEffect` inside it — ever run?
+
+### Answer
+A capitalized JSX tag isn't a DOM element, it's a compiled instruction to call a function. `<ProfileProvider>{children}</ProfileProvider>` compiles to roughly `React.createElement(ProfileProvider, { children })` — a plain JS object saying "call this function with these props," not an execution of it. `createRoot(...).render(<App />)` in `main.tsx` hands React a whole tree of these "please call this" objects, and **React itself** walks that tree and does the actual calling — `AuthProvider(props)`, then `ExercisesProvider(props)`, then `ProfileProvider(props)`, and so on, all inside React's internals, never in a line of code you wrote yourself.
+
+Once React calls `ProfileProvider(props)`, its body runs like any function: `useState` lines initialize state, and `useEffect` registers "run this after the render commits" rather than running immediately. After the first commit, React fires the registered effects — that's the actual first moment `refreshProfile()` executes.
+
+Login triggers a second call for a different reason: `ProfileProvider` reads `AuthContext` via `useAuth()`, and React's rule is that any component reading a context gets re-rendered — meaning React re-calls it — whenever that context's value changes. So logging in doesn't "restart" anything manually; it just changes a value that React is already watching on your behalf.
+
+### Why this matters
+JSX for a custom component is a description of a call, not the call itself — the capitalization rule (`ProfileProvider` vs. `div`) is exactly how the JSX compiler tells "call my function" apart from "render a real DOM tag." "Wrapping the app in a provider" really means: handing React a function to keep calling, forever, for the life of the app — not writing a one-time call anywhere yourself.
+
+---
+
+## What actually makes a function a custom hook
+
+### Question
+Beyond naming it `useSomething`, what's the actual rule for building a custom hook — and why does the `use` prefix matter functionally, not just stylistically?
+
+### Answer
+A custom hook is a plain JavaScript function with exactly two properties: it starts with `use`, and it calls at least one other hook inside it (`useState`, `useContext`, `useEffect`, or another custom hook). There's no special React API to "register" one — it's a naming convention, but a functionally load-bearing one: `eslint-plugin-react-hooks` uses the `use` prefix to *recognize* which functions to enforce the Rules of Hooks on — hooks can only be called at a component's top level (never inside an `if`, loop, or nested function), and only from a component or another hook. React tracks hook state internally by call order per render; a conditionally-called hook can shift that order between renders and attach state to the wrong hook call. The naming convention is what lets the linter catch that before it becomes a runtime bug — a function not named `useX` gets none of that checking, even if it internally does the exact same thing.
+
+`useProfile`/`useExercises` are the simplest possible shape — wrap one `useContext` call plus a null-guard. Other hooks do more inside (combine `useState` + `useEffect` to manage their own state, wrap a browser API with cleanup) — the Context-wrapper shape is common in this codebase specifically because it leans on Context for shared state, not because it's the definition of "custom hook."
+
+### Why this matters
+The dividing line between a **hook** and a **component**: both are "functions that call hooks," but a hook returns *data* (a value, object, or function) while a component returns *JSX*. `ProfileProvider` calls `useState`/`useCallback`/`useEffect`/`useMemo` internally but is a component, not a hook, because it returns `<ProfileContext.Provider>...`.
+
+---
+
+## `StrictMode` double-invokes renders and effects in development, on purpose
+
+### Question
+A `console.log` inside a component body printed twice as often as expected, and a data-fetch bug (see the `refreshProfile` race entry below) happened to align with exactly double the expected number of network calls. Is that a bug?
+
+### Answer
+No — `main.tsx` wraps the whole app in `<StrictMode>`, and in development, React deliberately calls component render functions *and* effect setup functions **twice** for every logical render, specifically to help surface bugs where a side effect (in render or in an effect) isn't safe to run more than once. React discards one of the two render outputs and only commits one, but both function calls actually execute — so a `console.log` sitting directly in a component body prints twice per real render, and any effect without a cleanup function fires its setup twice on mount.
+
+`StrictMode`'s double-invoke behavior is a dev-only diagnostic tool — it's compiled out of production builds entirely, so a production build shows the real, single count.
+
+### Why this matters
+This isn't something to "fix" or route around — it's intentionally there to make bugs like the `refreshProfile` race (next entry) show up reliably in development instead of only occasionally in production under real network timing. Any code that behaves differently when its effects run twice in a row has a real bug worth finding, and `StrictMode` is what surfaces it early.
+
+---
+
+# Category: React Context & Shared State
+
+## Shared exercises context
 
 ### Question
 Why create `ExercisesContext`?
@@ -193,58 +383,7 @@ The workout screen and difficulty screen can reuse the same backend data without
 
 ---
 
-## 8. Why some exercises stay hardcoded for now
-
-### Question
-Why not make every workout dynamic now?
-
-### Answer
-Because only squats are part of the working backend flow right now.
-The other exercises are future placeholders.
-
-### Why this matters
-You can keep the current UI stable while wiring only the working squat path to backend ids.
-
----
-
-## 9. Main implementation order
-
-### Question
-What should be built next, in order?
-
-### Answer
-1. Create the exercises API helper.
-2. Create the exercises context.
-3. Wrap the app in the provider.
-4. Use the exercises data in the squat flow.
-5. Pass exercise and difficulty ids through the game flow.
-6. Save the session using raw workout results.
-
-### Why this matters
-This order keeps the work small and understandable.
-
----
-
-## 10. Current lesson summary
-
-### What I should remember
-- API client first, UI second.
-- Backend ids matter more than display labels.
-- Auth state and exercise state should be separate.
-- `useEffect` runs code, `useCallback` remembers functions, `useMemo` remembers values.
-- `??` provides a fallback when a value is missing.
-
----
-
-## 11. Notes for later
-
-- Keep future workout cards static until they are part of the backend flow.
-- Use the backend response as the source of truth for squat difficulty ids.
-- When session saving is added, the backend should calculate score and achievements.
-
----
-
-## 12. How the exercises fetch happens automatically
+## How the exercises fetch happens automatically
 
 ### Question
 After login, how does the app know to call `GET /exercises`?
@@ -298,7 +437,7 @@ Login succeeds first, auth state changes, the exercises provider notices that ch
 
 ---
 
-## 13. Passing data through React Router navigation state
+## Passing data through React Router navigation state
 
 ### Question
 How does `exerciseDifficultyId` actually get from the Level screen to the Game screen?
@@ -311,115 +450,142 @@ The id has to travel from where it's known (Level, which has the backend exercis
 
 ---
 
-## 14. JS object shorthand property gotcha
+## Route `state` vs. Context: two different lifetimes for the same kind of data
 
 ### Question
-Why did `{ canvas, activeDifficulty }` cause a type error in `Game.tsx`?
+The Level page's rep-goal numbers went blank after playing a round and returning — why, if the exercise data itself never left memory?
 
 ### Answer
-`{ activeDifficulty }` is object shorthand for `{ activeDifficulty: activeDifficulty }` — it creates a key with the exact same name as the variable. But `DinoRunGameOptions` expects a key called `difficulty`, not `activeDifficulty`. Renaming a local variable doesn't rename the field the API/options type expects.
+Two different problems that look similar. The exercise data (`ExercisesContext`) was never the issue — it's a Provider wrapping the whole app in `main.tsx`, so it survives every navigation. What actually broke was `gameId`, which `Level.tsx` used to look up *which* exercise's difficulties to read out of that data. `gameId` was being passed through React Router's `nav(path, { state })` — and route `state` only exists for the single navigation call that set it. `Cards.tsx` set it once on the way *into* `/level`, but nothing carried it back out to `/exercise` and then back again through `Game.tsx`'s exit — so by the time the player returned to `/level`, `location.state` was empty and the lookup silently failed.
+
+The fix wasn't to re-thread `gameId` through every intermediate screen (including `Game.tsx`, which has no actual use for it) — it was to give `gameId` the same kind of home the exercise data already has: a small `SelectedGameContext`, set once when a game card is clicked, read directly by `Level.tsx` whenever it needs it. No component in between has to know it exists or forward it along.
 
 ### Why this matters
-Whenever a local variable's name doesn't match the field name the function/type expects, you must write the key explicitly: `{ difficulty: activeDifficulty }`. Shorthand only works when the names already match.
+Route `state` is a **one-time handoff**, scoped to a single `nav()` call — treat it like a value you're handing off for exactly one trip, not something that persists. Context (or anything provider-scoped above the router) is **long-lived**, matching the app's lifetime instead of one navigation. The tell for which one to use: if a value only needs to survive from screen A to the very next screen B, route state is fine (like `exerciseDifficultyId` going from Level to Game). If a value needs to survive arbitrary navigation back and forth — especially through screens that have no real use for it — it belongs in context instead, the same way `AuthContext`/`ExercisesContext` already do for auth and exercise data.
 
 ---
 
-## 15. `useEffect`: dependency array vs. cleanup function
+## Module-level state persists across every mount — that's a feature and a trap
 
 ### Question
-If the dependency array is `[]`, does the effect only run once — does that mean we can only count one repetition?
+Why did calibration get "stuck" after fixing the camera teardown — the checklist just hung with nothing turning green?
 
 ### Answer
-Two separate things:
-- The dependency array controls how many times the **setup code** runs. `[]` means "run once, when the component mounts, never again."
-- That setup code can attach an **event listener**, which is ongoing — it fires every time the event happens, not just once. So the rep counter's listener can fire 15+ times in one game even though the effect that attached it only ran once.
+`squatDetector.tsx`'s `isCalibrated`, `baselineY`, and `calibrationSamples` are plain module-level `let`s, not React state — they live for the entire life of the page, across every mount/unmount of the components that use them. We *wanted* that: it's what lets a second play session skip the 4-second stand-still and reuse the first session's baseline.
 
-The `return () => ...` inside a `useEffect` is a **cleanup function**. React calls it automatically right before the component unmounts (or before re-running the effect again, if dependencies had changed). For the rep counter, cleanup removes the same listener that was added.
+But `"mv:calibrated"` — the only event that tells the UI "calibration is done" — was only ever dispatched from *inside* the one-time calibration block. Once `isCalibrated` was `true` from a previous session, that block never ran again, so the event never fired again, so a brand-new `ExercisePage` instance had no way to find out calibration had already happened. The fix: `initSquatDetector()` now checks `if (isCalibrated)` on startup and immediately re-dispatches `"mv:calibrated"` itself, so any fresh listener gets caught up right away instead of waiting for an event that already happened in a previous life of the module.
 
 ### Why this matters
-`window` outlives any single component instance. Without cleanup, every remount (e.g. every retry) would stack a new listener on top of old ones that were never removed — a leak, and a source of bugs if the leftover listener ever touches `setState`.
+This is the general shape of the bug, not a one-off: **whenever state lives outside a component (module scope, a singleton, a cache) but the UI only learns about it through events, "already true" and "just became true" need to be handled as two separate cases.** An event fired once, at the moment a value changes, only reaches listeners that already existed at that moment — any listener that starts existing later needs the current state actively re-announced to it, not just the next change.
 
 ---
 
-## 16. `useRef` vs `useState` — when to use which
+## Why `ProfileContext` needs a `defaultStats` object
 
 ### Question
-Why is the rep counter a `useRef` and not a `useState`?
+`sessions` and `achievements` both start as `[]`, so why does `stats` need a separate `defaultStats` constant instead of also just starting empty?
 
 ### Answer
-`useState` triggers a re-render every time it changes. `useRef` just holds a mutable value across renders without causing one. The rep count doesn't need to show up live on screen — it's only read once, at the moment the game ends — so `useRef` avoids dozens of wasted re-renders during a single run.
+`[]` is a valid empty state for an array — but `stats` is a single object (`{ session_count, total_reps, total_calories }`), and there's no "empty" version of an object that still matches its type. `useState<WorkoutSessionStats>` needs some real, type-matching value the instant the component first renders, before any fetch has completed. Without a default, `stats` would have to be typed as `WorkoutSessionStats | null`, which then forces every consumer (Dashboard, Profile page) to null-check before reading `stats.total_calories`, everywhere, forever.
+
+`defaultStats = { session_count: 0, total_reps: 0, total_calories: 0 }` is a real, fully-valid `WorkoutSessionStats` — just all zeros. It's reused as both the initial state and the reset value on logout/fetch-error, so "no data yet" and "zero activity" look identical to anything reading it.
 
 ### Why this matters
-General rule: if a value needs to appear in the UI, use `useState`. If it's just bookkeeping you'll read later, use `useRef`.
+General pattern: array-shaped state can default to `[]` for free, but object-shaped state needs an explicit "empty but valid" shape defined up front, or the type has to grow a `| null` that leaks null-checks into every consumer.
 
 ---
 
-## 17. MediaPipe and the game are decoupled through events, not imports
+## The three pieces of React Context, and the order you actually build them in
 
 ### Question
-Is the game actually decoupled from MediaPipe, or is everything mixed together?
+`createContext`, a Provider component, and `useContext` all show up in `ProfileContext.tsx` — what does each one actually do, and in what order do you build them?
 
 ### Answer
-Three layers, connected only by `window` `CustomEvent`s, never by direct imports:
-1. `mediapipePlayer.tsx` — owns the camera + pose model, dispatches a generic `"mv:pose"` event with raw landmarks. Knows nothing about squats or games.
-2. `squatDetector.tsx` / `jumpDetector.tsx` — listen to `"mv:pose"`, interpret it as "a squat/jump happened," and dispatch their own events (`"mv:squat:start"`, `"mv:jump"`). Know nothing about the game.
-3. `DinoRunGameEngine.ts` — has zero imports from `src/mediapipe/`. It only does `window.addEventListener('mv:squat:start', ...)`, and that handler calls the exact same `handleJump()` a keyboard press would call.
+Three built-in pieces, each with one job:
+- **`createContext<T | null>(null)`** — makes an empty "channel." Holds nothing real by itself; `null` is what any consumer sees if no Provider is above it.
+- **The Provider** (`<ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>`) — a real component with real `useState`, wraps a subtree, and hands every descendant the current `value`.
+- **`useContext(ProfileContext)`** — called from any descendant, at any depth, to read whatever the nearest Provider above it is currently holding.
+
+The build order, using `ProfileContext.tsx` as the example: decide what's shared (sessions/stats/achievements) → write it as a TS type → `createContext<ThatType | null>(null)` → build the internal `useState`s → write the refresh action (`useCallback`) → decide when it auto-fires (`useEffect`) → package the state into one `value` (`useMemo`) and return the Provider → write a paired hook (`useProfile`) that wraps `useContext` and throws if it's `null`, so a missing Provider fails loudly instead of silently returning `undefined`.
+
+Two things that are easy to get wrong: Provider **nesting order** in `main.tsx` isn't cosmetic — a Provider that calls `useAuth()` internally has to render *inside* `AuthProvider`, or the token isn't available yet. And a changing `value` re-renders **every** component that calls that context's hook, not just the ones reading the specific field that changed — which is the actual mechanical reason `ProfileContext` was kept separate from `ExercisesContext` (different refresh cadence, so merging them would re-render exercises-only screens every time a workout session saves).
+
+Full diagram (prop-drilling comparison, nested-provider tree, all 8 build steps with code): see the "How React Context Actually Works" artifact from the 2026-07-12 session.
 
 ### Why this matters
-Because the coupling is just an event name on `window`, any number of independent listeners can react to the same detector event — e.g. the rep counter in `Game.tsx` listens to `"mv:squat:start"` for its own purpose, with zero knowledge of the game engine also listening to it. This is what makes it possible to swap games or add new listeners without touching the detector code.
+Same shape for any future context, not just Profile — `createContext` → Provider → hook is the whole pattern, and the 8-step build order is repeatable regardless of what data it's sharing.
 
 ---
 
-## 18. Frontend score vs. backend score
+## Diagnosing the zero-stats bug: two triggers racing, and an in-flight guard to fix it
 
 ### Question
-Why does the game show one score and the backend compute a different one?
+Dashboard showed `0` for every stat even though the Network tab's response body for `GET /workout_sessions/me` clearly had real numbers (`session_count: 30`, etc.). How could the fetch succeed but the state still end up zero?
 
 ### Answer
-The in-game number (`finalScore` in `DinoRunGameEngine.ts`) is a client-side arcade formula — reps × streak × time × difficulty × close-calls — built for gameplay feel and instant feedback. The backend computes its own, much simpler score (`reps_completed × score_multiplier`) independently from the raw reps sent in `POST /workout_sessions`, and that's the only one ever stored. The frontend's number is never sent to the backend and never trusted.
+Only two places in `ProfileContext.tsx` ever call `setStats(defaultStats)`: the `!token` early return, and the `catch` block on a failed fetch. Since the state kept landing on zero *after* a real response was visibly received, something had to be calling one of those *after* the good data arrived.
+
+The root cause: **two independent triggers both call `refreshProfile()`** — `ProfileContext.tsx`'s own `useEffect` (fires when `isAuthenticated` changes, i.e. on login) and `Dashboard.tsx`'s own `useEffect` (fires on mount, added when Dashboard was wired up to refresh itself). When Dashboard is the first page landed on right after login, both fire close together, and `StrictMode` doubles each of those (see the entry above) — four near-simultaneous calls to `refreshProfile()` for one page load, confirmed directly in the Network tab.
+
+`refreshProfile` had no guard against overlapping calls, so all four fired real HTTP requests. The browser's HTTP cache recognized the duplicate, identical GET requests and served some of them as `304 Not Modified` — which has **no response body**. `getWorkoutSessions`/`getAchievements` both check `response.ok`, which is only `true` for status `200`–`299`; `304` fails that check, so those duplicate calls fell into the `catch` block and reset everything to `defaultStats`. Whichever of the four calls happened to *resolve last* won the final state — and that wasn't guaranteed to be one of the successful ones.
+
+**The fix:** a `useRef` flag in `ProfileContext.tsx` that blocks a second call from starting while one is already in flight:
+
+```tsx
+const isFetchingRef = useRef(false);
+
+const refreshProfile = useCallback(async () => {
+  if (!token) { /* reset to defaults, return */ }
+  if (isFetchingRef.current) return;
+  isFetchingRef.current = true;
+  // ...fetch, setState...
+  // finally: isFetchingRef.current = false;
+}, [token]);
+```
+
+`useRef` (not `useState`) is what makes this work cleanly — flipping the flag shouldn't trigger a re-render, it just needs to be read/written synchronously across calls, exactly the "bookkeeping, not UI" case from the earlier `useRef` vs `useState` lesson. Setting `isFetchingRef.current = true` synchronously, before the first `await`, means even calls arriving back-to-back (like `StrictMode`'s double-invoke) see the flag already set and bail out before ever touching `fetch`.
 
 ### Why this matters
-This is intentional, not a bug: it's what makes the score tamper-resistant (the backend never reads a client-computed score, so editing the game in dev tools can't inflate a saved result). Full write-up: [docs/scoring-system.md](./scoring-system.md).
+Multiple independent triggers for the same async action, with no concurrency guard, is a race condition even when every individual call would have succeeded on its own — "last to resolve wins" isn't the same as "most recent to start wins," and network timing (including something as invisible as browser cache revalidation) decides the order, not code order. The general fix shape — a ref-based in-flight flag — applies to any function that can legitimately be called from more than one place and shouldn't stack.
 
 ---
 
-## 19. Diagnosing the "squat to retry" bug
+# Category: API Integration Architecture
+
+## Step 1: Create the exercises API client
 
 ### Question
-Why does the game sometimes restart on its own, and does that mean the session doesn't get saved?
+What is the first code step?
 
 ### Answer
-`"mv:squat:start"` is overloaded in the engine to mean four different things depending on state: start from idle, retry from game-over, retry from win, or jump during active play. On the results screen, any accidental squat detected — easy to trigger since the player is standing a few feet from the camera — silently restarts the game with no confirmation.
+Create a file like `src/api/exercises.ts` that knows how to call `GET /exercises`.
 
-This is a UX bug, not a save bug: `onGameEnd` fires the instant the round ends, before any retry gesture, so once the backend POST is wired up it already fires reliably regardless of this issue. What's actually broken is that the results screen disappears too fast to read and there's no deliberate "yes, save this" moment.
+It should contain:
+- `ExerciseDifficulty` type
+- `Exercise` type
+- `getExercises(token)` function
 
-**Confirmed in practice, and a second bug found alongside it:** testing showed the start-squat and retry-squat were both being counted by the rep counter as real reps (since `repCountRef` listens to every `"mv:squat:start"` with no way to tell "control" squats from "workout" squats apart). Separately, `Game.tsx`'s `handleRetry` rebuilds the engine in place without remounting `GamePage`, so `repCountRef` was never reset between rounds — reps kept accumulating round over round. The reset was a quick independent fix (`repCountRef.current = 0` at the top of `handleRetry`); the double-counting itself needed the gesture change below.
+Example shape:
+
+```ts
+export type ExerciseDifficulty = {
+  id: string;
+  level_name: string;
+  target_reps: number;
+  score_multiplier: number;
+};
+
+export type Exercise = {
+  id: string;
+  name: string;
+  description: string;
+  calories_per_rep: number;
+  difficulties: ExerciseDifficulty[];
+};
+```
 
 ### Why this matters
-Fix is to stop overloading one gesture for everything — see the next entry.
-
----
-
-## 20. Confirm/cancel gestures instead of squats for start and retry (plan pivoted mid-build)
-
-### Question
-Can we use a gesture other than squats to start the game and to confirm retry vs. save-and-exit — and if so, which gesture?
-
-### Answer
-**Original plan:** thumbs up/down via MediaPipe's dedicated **Gesture Recognizer** task (real hand tracking, built-in `Thumb_Up`/`Thumb_Down` categories) — the existing **Pose** model only gives one rough point per thumb/wrist, not enough resolution to tell thumbs-up from thumbs-down reliably. Built `src/mediapipe/gestureDetector.tsx` for this and confirmed the model loaded and ran per-frame without errors.
-
-**What actually happened when testing it:** no thumbs-up/down ever triggered. Debugging it surfaced a mix-up worth remembering on its own (see the new entry on this below) — the skeleton visible on screen is the Pose model's rough hand-region points (4 of them), not the Gesture Recognizer's real hand landmarks, which aren't drawn anywhere. Once that confusion was cleared up, the working theory was: hand-gesture models are tuned for a hand filling a good part of the frame (video calls, sign language), not a hand several feet from the camera in a full-body game setup.
-
-**Pivoted to:** reusing the already-loaded Pose model instead of adding a second one — comparing wrist Y vs. shoulder Y (`src/mediapipe/armGestureDetector.tsx`), same confirm-frames + cooldown pattern as `squatDetector.tsx`, dispatching `"mv:confirm"` (right arm raised) / `"mv:cancel"` (left arm raised). Tested standalone via console log at real gameplay distance and both triggered reliably. This is what's actually being wired into the engine now, not the thumbs-up plan.
-
-Remaining steps: replace the squat-triggered `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` branches in `DinoRunGameEngine.ts` with `"mv:confirm"`, add an `onExitRequested` callback fired by `"mv:cancel"` from `GAME_OVER`/`WIN` (wired to `Game.tsx`'s existing `handleExit`), then update `GameIdleModal`/`GameResultModal` copy. `gestureDetector.tsx` and the `getVideoElement()` export added to `mediapipePlayer.tsx` for the abandoned approach are unused but left in place for now.
-
-### Why this matters
-Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, matches how far the player actually stands from the device, and reuses a model already proven reliable at that distance instead of adding a second one tuned for a different use case.
-
----
-
-*From here on, entries are grouped by topic name instead of a running lesson number.*
+This file is the bridge between frontend and backend. If you do not know the backend shape, you cannot store or pass the right ids later.
 
 ---
 
@@ -442,18 +608,95 @@ This is the same six steps for any new endpoint client, not just this one — a 
 
 ---
 
-## Calling an `async` function without `await` ("fire and forget")
+## Frontend score vs. backend score
 
 ### Question
-`saveWorkoutSession` is declared `async`. Why do we call it without `await` inside `onGameEnd`?
+Why does the game show one score and the backend compute a different one?
 
 ### Answer
-`async` only guarantees the function returns a `Promise` — it does not force whoever calls it to wait. `await` is a separate, optional choice made at the call site. Not awaiting means: "start this now, but don't pause here for the result." That's fine when nothing that runs immediately after the call depends on the outcome — here, `setGameResult(result)` needs to show the results modal right away, and nothing on screen currently needs the backend's response first.
-
-Even without `await`, the `.catch(...)` chained onto the call is still doing real work: if the request fails and nothing handles that rejection, it becomes a silent "unhandled promise rejection" instead of a caught error you can log.
+The in-game number (`finalScore` in `DinoRunGameEngine.ts`) is a client-side arcade formula — reps × streak × time × difficulty × close-calls — built for gameplay feel and instant feedback. The backend computes its own, much simpler score (`reps_completed × score_multiplier`) independently from the raw reps sent in `POST /workout_sessions`, and that's the only one ever stored. The frontend's number is never sent to the backend and never trusted.
 
 ### Why this matters
-This pattern — call, don't await, but still `.catch()` — is called "fire and forget," and it's the right shape for a side effect the UI doesn't need to block on. The moment you *do* need the result for something afterward (e.g. reading `score`/`calories_burned`/`new_achievements` off the response to display verified badges), that's the signal to switch to `await` (marking the enclosing function `async`) or a `.then(...)` — which is exactly the shape the badges/score display step will need later.
+This is intentional, not a bug: it's what makes the score tamper-resistant (the backend never reads a client-computed score, so editing the game in dev tools can't inflate a saved result). Full write-up: [docs/scoring-system.md](./scoring-system.md).
+
+---
+
+## The five-layer pattern for wiring any API into a page
+
+### Question
+"Integrate the API" always feels like one big vague task — what's the actual repeatable shape of it, so it stops feeling that way?
+
+### Answer
+Every endpoint this app wires up passes through the same five layers, always in this order:
+
+1. **API function** (`src/api/*.tsx`) — talks to the backend, nothing else. Just `fetch`, the auth header, error handling. No React.
+2. **Context** (`src/context/*Context.tsx`) — owns the shared state: the data, `isLoading`, `error`, and a `refresh*()` function. Calls the layer-1 function; never calls `fetch` itself. This is the one copy of the data every page reuses instead of refetching.
+3. **Hook** (`src/context/use*.tsx`) — the thin `useContext` wrapper pages actually import. Throws a clear error if the provider isn't mounted, instead of a silent `undefined` three components deep.
+4. **Wiring** (`main.tsx`) — the provider has to actually wrap the app, or layers 1-3 do nothing. **This is the step that's easiest to forget** — writing the context and hook but never mounting the provider is the most common cause of "why is this undefined." Order matters too: anything reading the token has to sit *inside* `AuthProvider`.
+5. **Page** — reads from the hook only, renders loading/error/data states, calls `refresh*()` when it needs fresh data. Never calls the API function or `fetch` directly.
+
+Four things every context needs to actually hold up over time: `isLoading` + `error` state (not just the data), a named `refresh*()` exposed to consumers, a clear-on-logout path, and exactly one fetch trigger on mount/login so two components can't double-fetch.
+
+The "when," separately from the "what": a context can be told to refresh at more than one moment — e.g. `ProfileContext` refreshes once on login, and again after every completed game, so Profile never shows stale data on the next visit.
+
+Full diagram (file-by-file, with the login → refresh and post-game → refresh timelines): see the "API Integration Flow" artifact from the 2026-07-12 session.
+
+### Why this matters
+This is the same five-layer shape for any new endpoint, not just this one — `ExercisesContext` already follows it, and `ProfileContext` (Step 6, combining `achievements.ts` + `workoutSessions.tsx` into one context) is the next one built on it. Once the shape is recognized, a new integration becomes five small checkable steps instead of one big unclear one.
+
+---
+
+# Category: MediaPipe & Game Engine Architecture
+
+## MediaPipe and the game are decoupled through events, not imports
+
+### Question
+Is the game actually decoupled from MediaPipe, or is everything mixed together?
+
+### Answer
+Three layers, connected only by `window` `CustomEvent`s, never by direct imports:
+1. `mediapipePlayer.tsx` — owns the camera + pose model, dispatches a generic `"mv:pose"` event with raw landmarks. Knows nothing about squats or games.
+2. `squatDetector.tsx` / `jumpDetector.tsx` — listen to `"mv:pose"`, interpret it as "a squat/jump happened," and dispatch their own events (`"mv:squat:start"`, `"mv:jump"`). Know nothing about the game.
+3. `DinoRunGameEngine.ts` — has zero imports from `src/mediapipe/`. It only does `window.addEventListener('mv:squat:start', ...)`, and that handler calls the exact same `handleJump()` a keyboard press would call.
+
+### Why this matters
+Because the coupling is just an event name on `window`, any number of independent listeners can react to the same detector event — e.g. the rep counter in `Game.tsx` listens to `"mv:squat:start"` for its own purpose, with zero knowledge of the game engine also listening to it. This is what makes it possible to swap games or add new listeners without touching the detector code.
+
+---
+
+## Diagnosing the "squat to retry" bug
+
+### Question
+Why does the game sometimes restart on its own, and does that mean the session doesn't get saved?
+
+### Answer
+`"mv:squat:start"` is overloaded in the engine to mean four different things depending on state: start from idle, retry from game-over, retry from win, or jump during active play. On the results screen, any accidental squat detected — easy to trigger since the player is standing a few feet from the camera — silently restarts the game with no confirmation.
+
+This is a UX bug, not a save bug: `onGameEnd` fires the instant the round ends, before any retry gesture, so once the backend POST is wired up it already fires reliably regardless of this issue. What's actually broken is that the results screen disappears too fast to read and there's no deliberate "yes, save this" moment.
+
+**Confirmed in practice, and a second bug found alongside it:** testing showed the start-squat and retry-squat were both being counted by the rep counter as real reps (since `repCountRef` listens to every `"mv:squat:start"` with no way to tell "control" squats from "workout" squats apart). Separately, `Game.tsx`'s `handleRetry` rebuilds the engine in place without remounting `GamePage`, so `repCountRef` was never reset between rounds — reps kept accumulating round over round. The reset was a quick independent fix (`repCountRef.current = 0` at the top of `handleRetry`); the double-counting itself needed the gesture change below.
+
+### Why this matters
+Fix is to stop overloading one gesture for everything — see the next entry.
+
+---
+
+## Confirm/cancel gestures instead of squats for start and retry (plan pivoted mid-build)
+
+### Question
+Can we use a gesture other than squats to start the game and to confirm retry vs. save-and-exit — and if so, which gesture?
+
+### Answer
+**Original plan:** thumbs up/down via MediaPipe's dedicated **Gesture Recognizer** task (real hand tracking, built-in `Thumb_Up`/`Thumb_Down` categories) — the existing **Pose** model only gives one rough point per thumb/wrist, not enough resolution to tell thumbs-up from thumbs-down reliably. Built `src/mediapipe/gestureDetector.tsx` for this and confirmed the model loaded and ran per-frame without errors.
+
+**What actually happened when testing it:** no thumbs-up/down ever triggered. Debugging it surfaced a mix-up worth remembering on its own (see the next entry) — the skeleton visible on screen is the Pose model's rough hand-region points (4 of them), not the Gesture Recognizer's real hand landmarks, which aren't drawn anywhere. Once that confusion was cleared up, the working theory was: hand-gesture models are tuned for a hand filling a good part of the frame (video calls, sign language), not a hand several feet from the camera in a full-body game setup.
+
+**Pivoted to:** reusing the already-loaded Pose model instead of adding a second one — comparing wrist Y vs. shoulder Y (`src/mediapipe/armGestureDetector.tsx`), same confirm-frames + cooldown pattern as `squatDetector.tsx`, dispatching `"mv:confirm"` (right arm raised) / `"mv:cancel"` (left arm raised). Tested standalone via console log at real gameplay distance and both triggered reliably. This is what's actually being wired into the engine now, not the thumbs-up plan.
+
+Remaining steps: replace the squat-triggered `IDLE→CALIBRATING` and `GAME_OVER/WIN→restart` branches in `DinoRunGameEngine.ts` with `"mv:confirm"`, add an `onExitRequested` callback fired by `"mv:cancel"` from `GAME_OVER`/`WIN` (wired to `Game.tsx`'s existing `handleExit`), then update `GameIdleModal`/`GameResultModal` copy. `gestureDetector.tsx` and the `getVideoElement()` export added to `mediapipePlayer.tsx` for the abandoned approach are unused but left in place for now.
+
+### Why this matters
+Avoids repeating the same one-gesture-does-everything mistake that caused the retry bug, matches how far the player actually stands from the device, and reuses a model already proven reliable at that distance instead of adding a second one tuned for a different use case.
 
 ---
 
@@ -467,19 +710,6 @@ No — that skeleton is drawn by `mediapipePlayer.tsx`'s `drawConnectors`/`drawL
 
 ### Why this matters
 When two systems produce visually similar-looking output (both are "a skeleton over a video feed"), don't diagnose one by looking at the other's visualization. Get raw evidence directly from the system actually under test — e.g. a temporary `console.log` of the exact values it's producing — rather than inferring from a related-looking proxy. This is the same instinct as checking `git status`/reading a file directly instead of assuming from a summary.
-
----
-
-## When does a bugfix deserve its own commit?
-
-### Question
-I fixed a bug while building a new feature (`repCountRef` not resetting on retry) — does that need a separate commit from the feature?
-
-### Answer
-Rule of thumb: **would you want to revert this fix independently of the feature it was found alongside, or vice versa?** If yes — they're conceptually unrelated — give the fix its own commit so it can be reverted or bisected on its own later. If the fix was only discoverable *because* of the feature being built, is small, and lives in the same file/function you were already touching, bundling it into the same commit is reasonable; splitting it would mean interactively staging hunks (`git add -p`) for very little benefit.
-
-### Why this matters
-Commit granularity is a judgment call, not a fixed rule — the deciding question is about future revert/bisect usefulness, not "is this technically two different changes."
 
 ---
 
@@ -557,85 +787,18 @@ When a bug report says "the camera," check whether there's actually more than on
 
 ---
 
-## Module-level state persists across every mount — that's a feature and a trap
+# Category: Tooling
+
+## Prettier reports an error instead of fixing it
 
 ### Question
-Why did calibration get "stuck" after fixing the camera teardown — the checklist just hung with nothing turning green?
+Running Prettier on a new file printed an error and left the file untouched — why didn't it just fix it?
 
 ### Answer
-`squatDetector.tsx`'s `isCalibrated`, `baselineY`, and `calibrationSamples` are plain module-level `let`s, not React state — they live for the entire life of the page, across every mount/unmount of the components that use them. We *wanted* that: it's what lets a second play session skip the 4-second stand-still and reuse the first session's baseline.
-
-But `"mv:calibrated"` — the only event that tells the UI "calibration is done" — was only ever dispatched from *inside* the one-time calibration block. Once `isCalibrated` was `true` from a previous session, that block never ran again, so the event never fired again, so a brand-new `ExercisePage` instance had no way to find out calibration had already happened. The fix: `initSquatDetector()` now checks `if (isCalibrated)` on startup and immediately re-dispatches `"mv:calibrated"` itself, so any fresh listener gets caught up right away instead of waiting for an event that already happened in a previous life of the module.
+Prettier is a **formatter**, not a **linter/repair tool** — it reflows valid syntax into a consistent style (spacing, quotes, line breaks), but it has to be able to *parse* the file first. The actual cause was a genuine syntax error: `achievement.tsx` had `Promise<Achievement[] {` — a `<` opened for the generic type but never closed with `>` before the function body's `{`. A file that doesn't parse can't be reformatted, so Prettier just reports the parse error and leaves the file exactly as it was.
 
 ### Why this matters
-This is the general shape of the bug, not a one-off: **whenever state lives outside a component (module scope, a singleton, a cache) but the UI only learns about it through events, "already true" and "just became true" need to be handled as two separate cases.** An event fired once, at the moment a value changes, only reaches listeners that already existed at that moment — any listener that starts existing later needs the current state actively re-announced to it, not just the next change.
-
----
-
-## You can't `removeEventListener` an anonymous function
-
-### Question
-Why did every detector (`squatDetector.tsx`, `armGestureDetector.tsx`) need a named `handlePoseEvent` function instead of the inline arrow function they had before?
-
-### Answer
-`removeEventListener` only removes a listener if you pass the *exact same function reference* that was passed to `addEventListener`. An inline arrow function (`(e) => onSquatFrame(...)`) creates a brand-new function object every time it's written — even textually identical code — so there's no way to ever refer back to "that one" to remove it. Pulling it out to a named, module-level `function handlePoseEvent(e) {...}` gives both `addEventListener` and `removeEventListener` the same reference to point at.
-
-### Why this matters
-Any time a listener needs to be removable later, it can't be anonymous — this is a hard JS/DOM constraint, not a style preference. It's also what was silently causing the duplicate-listener stacking bug: every re-entry into the game called `initSquatDetector()` again, adding another anonymous listener with no way to ever clean up the previous one.
-
----
-
-## Route `state` vs. Context: two different lifetimes for the same kind of data
-
-### Question
-The Level page's rep-goal numbers went blank after playing a round and returning — why, if the exercise data itself never left memory?
-
-### Answer
-Two different problems that look similar. The exercise data (`ExercisesContext`) was never the issue — it's a Provider wrapping the whole app in `main.tsx`, so it survives every navigation. What actually broke was `gameId`, which `Level.tsx` used to look up *which* exercise's difficulties to read out of that data. `gameId` was being passed through React Router's `nav(path, { state })` — and route `state` only exists for the single navigation call that set it. `Cards.tsx` set it once on the way *into* `/level`, but nothing carried it back out to `/exercise` and then back again through `Game.tsx`'s exit — so by the time the player returned to `/level`, `location.state` was empty and the lookup silently failed.
-
-The fix wasn't to re-thread `gameId` through every intermediate screen (including `Game.tsx`, which has no actual use for it) — it was to give `gameId` the same kind of home the exercise data already has: a small `SelectedGameContext`, set once when a game card is clicked, read directly by `Level.tsx` whenever it needs it. No component in between has to know it exists or forward it along.
-
-### Why this matters
-Route `state` is a **one-time handoff**, scoped to a single `nav()` call — treat it like a value you're handing off for exactly one trip, not something that persists. Context (or anything provider-scoped above the router) is **long-lived**, matching the app's lifetime instead of one navigation. The tell for which one to use: if a value only needs to survive from screen A to the very next screen B, route state is fine (like `exerciseDifficultyId` going from Level to Game). If a value needs to survive arbitrary navigation back and forth — especially through screens that have no real use for it — it belongs in context instead, the same way `AuthContext`/`ExercisesContext` already do for auth and exercise data.
-
----
-
-## Merging `dev` into a feature branch doesn't keep them independent — and can silently combine mismatched code
-
-### Question
-After merging `dev` into this branch (choosing "accept incoming" on conflicts) and pushing, the confirm-gesture-to-start flow broke — raising an arm kept snapping back to the start screen. `Game.tsx` looked the same on both branches when checked separately. What happened?
-
-### Answer
-Two misunderstandings stacked up:
-
-1. **Merging `dev` in is the opposite of staying independent.** `git merge dev` pulls dev's commits into the current branch's history — after the merge, the branch contains the union of both. There's no "merge but keep separate" option; if independence is wanted, the merge itself has to be skipped.
-2. **"Accept incoming" is a per-conflict choice, not a whole-file or whole-branch one.** For each spot where both branches touched the same lines differently, incoming = dev's version, current/ours = this branch's version. Picking incoming for one conflicting hunk doesn't affect unrelated hunks elsewhere in the same file.
-
-The actual bug came from that second point. Checking the merge commit directly (`git show <merge-commit> -- path/to/file`) showed dev had independently fixed the same `bootGame`-identity problem, but with a different, also-valid approach: wrapping `bootGame` in `useCallback(..., [difficulty])` and depending on `[bootGame]`. This branch had a different valid approach: a plain `bootGame` depending on `[difficulty]` directly. The import line, the `useCallback` wrapping, and the effect's dependency array are three separate, non-adjacent regions of the file — git treated them as independent, non-conflicting hunks and combined them without ever flagging a conflict: it kept *this branch's* plain, unmemoized `bootGame` body (good — that's the version with all the session's feature work), but took *dev's* `useCallback` import and `[bootGame]` dependency line. Those two halves don't work together — an unmemoized function depended on as `[bootGame]` re-creates the game engine on every render, which is exactly what caused the "snaps back to start" symptom.
-
-### Why this matters
-A merge can complete with **zero conflict markers** and still be semantically broken, if two branches solved the same problem differently in ways that touch non-overlapping lines. Git only flags a conflict when both sides changed the *exact same* lines — it has no concept of "these three separate edits only make sense together." After merging a branch that touched the same feature/file you were working on, it's worth deliberately re-reading the result (not just checking it builds), especially anywhere both branches were likely to have solved the same problem independently. And since this merge was already pushed through a PR to a shared branch, the right move was to fix forward with a new commit — not rewrite already-shared history.
-
----
-
-## A merge is additive, not destructive — and "no conflicts" only means "no textual overlap"
-
-### Question
-Merging `main` into `dev` (to resolve a PR that said "can't automatically merge") re-introduced the exact `[bootGame]`/unmemoized-function bug from before — on a line that never showed up as a conflict at all, in either GitHub's PR UI or VSCode's merge editor. What actually happened, and what does merging really do to a branch?
-
-### Answer
-Two ideas, both worth being precise about:
-
-**A merge doesn't overwrite a branch — it adds to it.** `git merge <other>` while on `dev` creates one *new* commit with two parents (the old `dev` tip and `<other>`'s tip). Every commit `dev` already had is still there, still reachable, still intact — nothing is deleted or replaced. What's new is just the merge commit itself, which records how the two histories got reconciled. "Accept Current" vs "Accept Incoming" only decides what the content becomes *going forward from that commit* for the specific lines that conflicted — it's not erasing anyone's branch, and the losing side's content is still recoverable from history (`git show <commit>:path`) if ever needed.
-
-**"No conflicts" is a purely textual guarantee, not a correctness one.** Git flags a conflict only when both sides changed the *exact same lines*. It has no concept of two changes being logically coupled while living in different parts of a file — like "is this function memoized" (one spot) and "what does the effect depending on it list as a dependency" (a different spot, potentially dozens of lines away). When only one side is seen as having "really" changed a given line (relative to whatever git computes as the common ancestor), that line gets silently auto-merged with **zero prompt, zero warning, and zero visibility in the PR UI** — not even a "these lines were auto-merged, please double check" notice. This is a level up from the earlier merge bug in this log: that one was a *manual* mis-resolution across separate hunks; this one was git resolving something *automatically* and silently, with no chance to even notice it happening in the diff view.
-
-### Why this matters
-"No conflicts" (from git, GitHub, or any merge tool) means exactly one thing: no two sides touched the identical lines. It says nothing about whether the combined result actually behaves correctly, especially for code where meaning depends on two pieces staying in sync but sitting apart in the file. The only real safety net is testing the actual resolved code before committing — which is exactly why building and running the app locally, right after resolving conflicts and before running `git commit`, caught this one when nothing else would have.
-
----
-
-*From here on, entries are also grouped under a category heading — the deployment work pulled in enough DNS/hosting/git-collaboration concepts to deserve their own section instead of one long flat list.*
+If Prettier (or ESLint) throws an error and changes nothing, the first thing to check is whether the file is actually valid syntax at all — mismatched brackets, missing closing tags — before assuming the tool is misbehaving. Once fixed, Prettier re-ran clean and also normalized the rest of the file's spacing/semicolons in the same pass.
 
 ---
 
@@ -728,6 +891,54 @@ The fork is a fully independent copy from that point on — changes pushed there
 
 # Category: Git & Collaboration
 
+## When does a bugfix deserve its own commit?
+
+### Question
+I fixed a bug while building a new feature (`repCountRef` not resetting on retry) — does that need a separate commit from the feature?
+
+### Answer
+Rule of thumb: **would you want to revert this fix independently of the feature it was found alongside, or vice versa?** If yes — they're conceptually unrelated — give the fix its own commit so it can be reverted or bisected on its own later. If the fix was only discoverable *because* of the feature being built, is small, and lives in the same file/function you were already touching, bundling it into the same commit is reasonable; splitting it would mean interactively staging hunks (`git add -p`) for very little benefit.
+
+### Why this matters
+Commit granularity is a judgment call, not a fixed rule — the deciding question is about future revert/bisect usefulness, not "is this technically two different changes."
+
+---
+
+## Merging `dev` into a feature branch doesn't keep them independent — and can silently combine mismatched code
+
+### Question
+After merging `dev` into this branch (choosing "accept incoming" on conflicts) and pushing, the confirm-gesture-to-start flow broke — raising an arm kept snapping back to the start screen. `Game.tsx` looked the same on both branches when checked separately. What happened?
+
+### Answer
+Two misunderstandings stacked up:
+
+1. **Merging `dev` in is the opposite of staying independent.** `git merge dev` pulls dev's commits into the current branch's history — after the merge, the branch contains the union of both. There's no "merge but keep separate" option; if independence is wanted, the merge itself has to be skipped.
+2. **"Accept incoming" is a per-conflict choice, not a whole-file or whole-branch one.** For each spot where both branches touched the same lines differently, incoming = dev's version, current/ours = this branch's version. Picking incoming for one conflicting hunk doesn't affect unrelated hunks elsewhere in the same file.
+
+The actual bug came from that second point. Checking the merge commit directly (`git show <merge-commit> -- path/to/file`) showed dev had independently fixed the same `bootGame`-identity problem, but with a different, also-valid approach: wrapping `bootGame` in `useCallback(..., [difficulty])` and depending on `[bootGame]`. This branch had a different valid approach: a plain `bootGame` depending on `[difficulty]` directly. The import line, the `useCallback` wrapping, and the effect's dependency array are three separate, non-adjacent regions of the file — git treated them as independent, non-conflicting hunks and combined them without ever flagging a conflict: it kept *this branch's* plain, unmemoized `bootGame` body (good — that's the version with all the session's feature work), but took *dev's* `useCallback` import and `[bootGame]` dependency line. Those two halves don't work together — an unmemoized function depended on as `[bootGame]` re-creates the game engine on every render, which is exactly what caused the "snaps back to start" symptom.
+
+### Why this matters
+A merge can complete with **zero conflict markers** and still be semantically broken, if two branches solved the same problem differently in ways that touch non-overlapping lines. Git only flags a conflict when both sides changed the *exact same* lines — it has no concept of "these three separate edits only make sense together." After merging a branch that touched the same feature/file you were working on, it's worth deliberately re-reading the result (not just checking it builds), especially anywhere both branches were likely to have solved the same problem independently. And since this merge was already pushed through a PR to a shared branch, the right move was to fix forward with a new commit — not rewrite already-shared history.
+
+---
+
+## A merge is additive, not destructive — and "no conflicts" only means "no textual overlap"
+
+### Question
+Merging `main` into `dev` (to resolve a PR that said "can't automatically merge") re-introduced the exact `[bootGame]`/unmemoized-function bug from before — on a line that never showed up as a conflict at all, in either GitHub's PR UI or VSCode's merge editor. What actually happened, and what does merging really do to a branch?
+
+### Answer
+Two ideas, both worth being precise about:
+
+**A merge doesn't overwrite a branch — it adds to it.** `git merge <other>` while on `dev` creates one *new* commit with two parents (the old `dev` tip and `<other>`'s tip). Every commit `dev` already had is still there, still reachable, still intact — nothing is deleted or replaced. What's new is just the merge commit itself, which records how the two histories got reconciled. "Accept Current" vs "Accept Incoming" only decides what the content becomes *going forward from that commit* for the specific lines that conflicted — it's not erasing anyone's branch, and the losing side's content is still recoverable from history (`git show <commit>:path`) if ever needed.
+
+**"No conflicts" is a purely textual guarantee, not a correctness one.** Git flags a conflict only when both sides changed the *exact same lines*. It has no concept of two changes being logically coupled while living in different parts of a file — like "is this function memoized" (one spot) and "what does the effect depending on it list as a dependency" (a different spot, potentially dozens of lines away). When only one side is seen as having "really" changed a given line (relative to whatever git computes as the common ancestor), that line gets silently auto-merged with **zero prompt, zero warning, and zero visibility in the PR UI** — not even a "these lines were auto-merged, please double check" notice. This is a level up from the earlier merge bug in this log: that one was a *manual* mis-resolution across separate hunks; this one was git resolving something *automatically* and silently, with no chance to even notice it happening in the diff view.
+
+### Why this matters
+"No conflicts" (from git, GitHub, or any merge tool) means exactly one thing: no two sides touched the identical lines. It says nothing about whether the combined result actually behaves correctly, especially for code where meaning depends on two pieces staying in sync but sitting apart in the file. The only real safety net is testing the actual resolved code before committing — which is exactly why building and running the app locally, right after resolving conflicts and before running `git commit`, caught this one when nothing else would have.
+
+---
+
 ## Using git history as evidence, not assumption, to resolve a contradiction
 
 ### Question
@@ -764,30 +975,3 @@ No. It has zero file changes, so there's nothing to actually revert — revertin
 
 ### Why this matters
 Not every commit needs to carry a "real" change — a deliberate no-op commit to trigger automation (a build, a webhook) is a normal, harmless pattern, safe to leave in history as-is.
-
----
-
-## The five-layer pattern for wiring any API into a page
-
-### Question
-"Integrate the API" always feels like one big vague task — what's the actual repeatable shape of it, so it stops feeling that way?
-
-### Answer
-Every endpoint this app wires up passes through the same five layers, always in this order:
-
-1. **API function** (`src/api/*.tsx`) — talks to the backend, nothing else. Just `fetch`, the auth header, error handling. No React.
-2. **Context** (`src/context/*Context.tsx`) — owns the shared state: the data, `isLoading`, `error`, and a `refresh*()` function. Calls the layer-1 function; never calls `fetch` itself. This is the one copy of the data every page reuses instead of refetching.
-3. **Hook** (`src/context/use*.tsx`) — the thin `useContext` wrapper pages actually import. Throws a clear error if the provider isn't mounted, instead of a silent `undefined` three components deep.
-4. **Wiring** (`main.tsx`) — the provider has to actually wrap the app, or layers 1-3 do nothing. **This is the step that's easiest to forget** — writing the context and hook but never mounting the provider is the most common cause of "why is this undefined." Order matters too: anything reading the token has to sit *inside* `AuthProvider`.
-5. **Page** — reads from the hook only, renders loading/error/data states, calls `refresh*()` when it needs fresh data. Never calls the API function or `fetch` directly.
-
-Four things every context needs to actually hold up over time: `isLoading` + `error` state (not just the data), a named `refresh*()` exposed to consumers, a clear-on-logout path, and exactly one fetch trigger on mount/login so two components can't double-fetch.
-
-The "when," separately from the "what": a context can be told to refresh at more than one moment — e.g. `ProfileContext` refreshes once on login, and again after every completed game, so Profile never shows stale data on the next visit.
-
-Full diagram (file-by-file, with the login → refresh and post-game → refresh timelines): see the "API Integration Flow" artifact from the 2026-07-12 session.
-
-### Why this matters
-This is the same five-layer shape for any new endpoint, not just this one — `ExercisesContext` already follows it, and `ProfileContext` (Step 6, combining `achievements.ts` + `workoutSessions.tsx` into one context) is the next one built on it. Once the shape is recognized, a new integration becomes five small checkable steps instead of one big unclear one.
-
----

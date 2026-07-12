@@ -32,6 +32,11 @@ function GamePage() {
 
   useMediaPipe();
 
+  const handleExit = () => {
+    setGameResult(null);
+    nav("/profile");
+  };
+
   const bootGame = (canvas: HTMLCanvasElement) => {
     gameRef.current = new DinoRunGame({
       canvas,
@@ -90,11 +95,6 @@ function GamePage() {
       if (!canvasRef.current) return;
       bootGame(canvasRef.current);
     });
-  };
-
-  const handleExit = () => {
-    setGameResult(null);
-    nav("/level");
   };
 
   return (

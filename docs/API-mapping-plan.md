@@ -285,13 +285,13 @@ Resolved design (see Update Log 2026-07-10 for full discussion): Profile gets it
 
 Build sequence:
 
-- [ ] `src/api/achievements.ts` — new file, owns the `Achievement` type (moved out of `workoutSessions.tsx`) + `getAchievements(token)`.
-- [ ] `src/api/workoutSessions.tsx` — import `Achievement` from the new file, add `getWorkoutSessions(token)` + types for the `{ sessions, stats }` response.
-- [ ] `src/context/ProfileContext.tsx` — same pattern as `ExercisesContext`: `sessions`, `stats`, `achievements`, `isLoading`, `error`, `refreshProfile()`.
-- [ ] `src/context/useProfile.tsx` — thin hook, same pattern as `useExercises.tsx`.
-- [ ] Wire `<ProfileProvider>` into `main.tsx` alongside the existing providers.
-- [ ] Call `refreshProfile()` again after a game ends (exact trigger point — Game.tsx post-save vs. Dashboard on-mount — still to be decided when we get there).
-- [ ] Remove dead `mv:gameover`/`GameOverModal` code (see Step 5 note above).
+- [x] `src/api/achievements.tsx` — new file, owns the `Achievement` type (moved out of `workoutSessions.tsx`) + `getAchievements(token)`. (`.tsx`, not `.ts`, matching the Step 1 naming precedent.)
+- [x] `src/api/workoutSessions.tsx` — imports `Achievement` from `achievements.tsx`, adds `getWorkoutSessions(token)` + `WorkoutSession`/`WorkoutSessionStats`/`WorkoutSessionResponse` types for the `{ sessions, stats }` response.
+- [x] `src/context/ProfileContext.tsx` — same pattern as `ExercisesContext`: `sessions`, `stats`, `achievements`, `isLoading`, `error`, `refreshProfile()`. `stats` defaults to a `defaultStats` zero-object (not `null`), since an object can't default to `[]` the way arrays can.
+- [x] `src/context/useProfile.tsx` — thin hook, same pattern as `useExercises.tsx`.
+- [x] Wire `<ProfileProvider>` into `main.tsx` alongside the existing providers. Nested inside `AuthProvider` (needs the token) and grouped next to `ExercisesProvider`; order relative to `SelectedGameProvider` doesn't matter since neither depends on the other.
+- [x] Call `refreshProfile()` again after a game ends. **Resolved:** Dashboard/Profile page calls `refreshProfile()` in its own `useEffect` on mount, not `Game.tsx` post-save — keeps `Game.tsx`'s only responsibility as running the game, and matches the existing "refetch when shown" pattern rather than "producer announces a change." Implemented in `src/pages/Dashboard/Dashboard.tsx`.
+- [x] Remove dead `mv:gameover`/`GameOverModal` code (see Step 5 note above). Also removed `handlePlayAgain`/`handleGoToDashboard`/`gameKey` from `Exercise.tsx`, since they were only ever wired to the dead modal and had no other caller. Deleted `src/components/Modal/Modal.tsx` and `Modal.module.css` outright.
 - [ ] Redesign the Dashboard UI itself to match real backend fields (drop the hardcoded streak stat, decide session-history display as table vs. graph) — explicitly deferred, data layer comes first.
 
 ---
@@ -396,7 +396,7 @@ The backend independently computes this and returns it from `POST /workout_sessi
 - When future exercises are ready, should they follow the same shared-state pattern or a separate flow? (still open, not yet relevant)
 - ~~Should completing a round navigate to Profile, or stay on the current flow with a "here's what was saved" line in the results popup?~~ **Resolved:** stay on the current flow for now; no in-modal line. Profile becomes the authoritative-data surface once Step 6's data layer lands, and post-game navigation to Profile is a later decision once that's in place. See Step 5/6 notes above.
 - ~~One combined context for sessions + achievements, or fold into `ExercisesContext`, or split further?~~ **Resolved:** one new `ProfileContext` combining sessions + achievements, kept separate from `ExercisesContext`. See Step 6 reasoning above.
-- New question from Step 6: where should `refreshProfile()` get called after a game — from `Game.tsx` right after the save, or from Dashboard on mount? Still open.
+- ~~New question from Step 6: where should `refreshProfile()` get called after a game — from `Game.tsx` right after the save, or from Dashboard on mount?~~ **Resolved:** Dashboard/Profile page refreshes itself on mount. See Step 6 build sequence above.
 - New question from Step 6: does Dashboard's streak stat get derived client-side from session timestamps, or wait for a backend field? Still open.
 
 ---

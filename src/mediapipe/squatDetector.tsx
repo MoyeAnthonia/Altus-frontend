@@ -67,8 +67,6 @@ export function initSquatDetector() {
       new CustomEvent<MvCalibratedDetail>("mv:calibrated", { detail: { baselineY } }),
     );
   }
-
-  console.log("[SquatDetector] Please stand still to calibrate...");
 }
 
 export function stopSquatDetector() {
@@ -114,10 +112,6 @@ function onSquatFrame(results: MyPoseDetail) {
       baselineY = sum / calibrationSamples.length;
       isCalibrated = true;
 
-      console.log(`[SquatDetector] Calibrated!`);
-      console.log(`  Standing hip Y = ${baselineY.toFixed(3)}`);
-      console.log(`  Squat triggers when hip Y > ${(baselineY + SQUAT_THRESHOLD).toFixed(3)}`);
-
       // Tell the game calibration is done so Dino game transitions to ACTIVE
       window.dispatchEvent(
         new CustomEvent<MvCalibratedDetail>("mv:calibrated", {
@@ -159,7 +153,6 @@ function onSquatFrame(results: MyPoseDetail) {
           detail: { squatDepth: squatDepth.toFixed(3) },
         }),
       );
-      console.log(`[SquatDetector] Squat! depth=${squatDepth.toFixed(3)}`);
     }
   } else {
     // Hips are back at normal height — player stood back up
@@ -171,7 +164,6 @@ function onSquatFrame(results: MyPoseDetail) {
       // Tell the game the player stood up
       // Useful later for "hold squat to duck" mechanics
       window.dispatchEvent(new CustomEvent("mv:squat:end"));
-      console.log("[SquatDetector] Player stood up");
     }
   }
 }
