@@ -1,0 +1,92 @@
+.wrapper {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.panel {
+  width: 100%;
+  max-width: 34rem;
+  text-align: center;
+  padding: 3rem 2rem;
+  border: 2px solid var(--accent-gold);
+  border-radius: 12px;
+  background: rgba(27, 34, 60, 0.85);
+  box-shadow: 0 0 24px rgba(155, 109, 255, 0.25);
+}
+
+.code {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  color: var(--cyan);
+  margin: 0 0 1.5rem;
+  text-shadow: 0 0 12px rgba(56, 225, 255, 0.6);
+}
+
+.title {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(0.9rem, 3vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--accent-gold);
+  margin: 0 0 1.5rem;
+}
+
+.message {
+  font-family: "Sora", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 2.5rem;
+}
+
+.path {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+  color: var(--cyan);
+  background: rgba(56, 225, 255, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primary,
+.secondary {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.8rem 1.6rem;
+  border-radius: 8px;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.primary {
+  background: var(--cyan);
+  color: var(--bg-main-color);
+  border: 2px solid var(--cyan);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--cyan);
+  border: 2px solid var(--cyan);
+}
+
+.primary:hover,
+.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(56, 225, 255, 0.3);
+}

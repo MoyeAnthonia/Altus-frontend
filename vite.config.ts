@@ -30,5 +30,5 @@ export default defineConfig({
   server: {
     sourcemapIgnoreList: (sourcePath) => sourcePath.includes("@mediapipe"),
   },
-    base: process.env.VITE_BASE_PATH || "Altus-frontend",
+  base: "/",
 });

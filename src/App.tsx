@@ -10,6 +10,7 @@ import LoginPage from "./pages/Login/Login";
 import WorkoutSection from "./components/WorkoutSection/WorkoutSection";
 import Footer from "./components/Footer/Footer";
 import ExercisePage from "./pages/Exercise/Exercise";
+import { NotFound } from "./pages/NotFound/NotFound";
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -35,6 +36,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/workout" element={<WorkoutSection />} />
         <Route path="/exercise" element={<ExercisePage />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
     </>
