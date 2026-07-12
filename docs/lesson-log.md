@@ -615,3 +615,179 @@ The actual bug came from that second point. Checking the merge commit directly (
 
 ### Why this matters
 A merge can complete with **zero conflict markers** and still be semantically broken, if two branches solved the same problem differently in ways that touch non-overlapping lines. Git only flags a conflict when both sides changed the *exact same* lines — it has no concept of "these three separate edits only make sense together." After merging a branch that touched the same feature/file you were working on, it's worth deliberately re-reading the result (not just checking it builds), especially anywhere both branches were likely to have solved the same problem independently. And since this merge was already pushed through a PR to a shared branch, the right move was to fix forward with a new commit — not rewrite already-shared history.
+
+---
+
+## A merge is additive, not destructive — and "no conflicts" only means "no textual overlap"
+
+### Question
+Merging `main` into `dev` (to resolve a PR that said "can't automatically merge") re-introduced the exact `[bootGame]`/unmemoized-function bug from before — on a line that never showed up as a conflict at all, in either GitHub's PR UI or VSCode's merge editor. What actually happened, and what does merging really do to a branch?
+
+### Answer
+Two ideas, both worth being precise about:
+
+**A merge doesn't overwrite a branch — it adds to it.** `git merge <other>` while on `dev` creates one *new* commit with two parents (the old `dev` tip and `<other>`'s tip). Every commit `dev` already had is still there, still reachable, still intact — nothing is deleted or replaced. What's new is just the merge commit itself, which records how the two histories got reconciled. "Accept Current" vs "Accept Incoming" only decides what the content becomes *going forward from that commit* for the specific lines that conflicted — it's not erasing anyone's branch, and the losing side's content is still recoverable from history (`git show <commit>:path`) if ever needed.
+
+**"No conflicts" is a purely textual guarantee, not a correctness one.** Git flags a conflict only when both sides changed the *exact same lines*. It has no concept of two changes being logically coupled while living in different parts of a file — like "is this function memoized" (one spot) and "what does the effect depending on it list as a dependency" (a different spot, potentially dozens of lines away). When only one side is seen as having "really" changed a given line (relative to whatever git computes as the common ancestor), that line gets silently auto-merged with **zero prompt, zero warning, and zero visibility in the PR UI** — not even a "these lines were auto-merged, please double check" notice. This is a level up from the earlier merge bug in this log: that one was a *manual* mis-resolution across separate hunks; this one was git resolving something *automatically* and silently, with no chance to even notice it happening in the diff view.
+
+### Why this matters
+"No conflicts" (from git, GitHub, or any merge tool) means exactly one thing: no two sides touched the identical lines. It says nothing about whether the combined result actually behaves correctly, especially for code where meaning depends on two pieces staying in sync but sitting apart in the file. The only real safety net is testing the actual resolved code before committing — which is exactly why building and running the app locally, right after resolving conflicts and before running `git commit`, caught this one when nothing else would have.
+
+---
+
+*From here on, entries are also grouped under a category heading — the deployment work pulled in enough DNS/hosting/git-collaboration concepts to deserve their own section instead of one long flat list.*
+
+---
+
+# Category: Deployment & DNS
+
+## CNAME vs. A record, and why the domain apex is special
+
+### Question
+What's the difference between a CNAME and an A record, and why couldn't the frontend just get a plain CNAME the same way `api.altus.games` did?
+
+### Answer
+An **A record** points a name straight at an IP address. A **CNAME** points a name at *another name*, which DNS then resolves further — used when the target's IP can change over time (true of almost all AWS/Vercel/CloudFront-style hosting, where you get a hostname, not a stable IP). `api.altus.games` → Heroku works as a plain CNAME because it's a subdomain.
+
+The catch is the **zone apex** (bare `altus.games`, no subdomain): a CNAME isn't allowed to coexist with the other record types (MX, TXT, etc.) a domain root needs, so DNS rules forbid a real CNAME there. That's why apex-domain hosting on AWS/Vercel usually means one of: an ALIAS/ANAME record (a non-standard extension some registrars/Route 53 support that behaves like a CNAME but is legal at the apex), or plain domain forwarding the bare domain to `www`, and putting the real CNAME on `www` instead.
+
+### Why this matters
+Subdomains (`www.altus.games`, `api.altus.games`) are simple, ordinary CNAMEs. The bare apex is the special case — check whether your registrar supports ALIAS/ANAME before assuming a CNAME will just work there too.
+
+---
+
+## DNS routing to a host vs. which project on that host actually serves you
+
+### Question
+Why didn't `altus.games` need any DNS changes on Names.com when the live app moved from a teammate's Vercel project to a personal fork's Vercel project?
+
+### Answer
+Two separate layers. **DNS** only has to say "route this hostname to Vercel's network in general" — an A record to Vercel's shared IP, or a CNAME to `cname.vercel-dns.com`. That's generic infrastructure, not tied to any one project, and it can be set up once and never touched again. **Which specific project** actually renders the page for that hostname is decided entirely inside Vercel's own dashboard, under each project's Domains settings — and a domain can only be actively claimed by one project at a time (even across different Vercel accounts). Adding the domain to a new project there re-points the claim, with zero DNS changes required, as long as the DNS was already correctly aimed at Vercel from some earlier setup.
+
+### Why this matters
+"It just started working without touching DNS" isn't magic — it means the DNS layer was already correct from an earlier deploy attempt, and only the project-level domain claim changed. It's also a real risk to flag to a teammate: claiming a domain in your own project can silently un-claim it from theirs.
+
+---
+
+## Vite's `base` option: subpath hosting vs. root-domain hosting
+
+### Question
+What does `base` in `vite.config.ts` actually do, and why did setting `base: "Altus-frontend"` break the production deploy?
+
+### Answer
+`base` tells the build "every asset URL (JS, CSS, favicon, etc.) should be prefixed with this path" — because the app will be served from a subfolder, not the domain root. That's the right setting for hosts like GitHub Pages, where a project site really does live at `username.github.io/repo-name/`. Vercel serves the app at the domain root (`/`), so setting `base` to anything other than `/` (the default) makes every asset reference resolve to a path that doesn't exist there — e.g. `/Altus-frontend/assets/index-xxx.js` 404s when the real file is at `/assets/index-xxx.js`.
+
+Confirmed directly by rebuilding locally with and without the line and diffing the generated `dist/index.html` — with it present, every `src`/`href` in the file, including the favicon link, got the `/Altus-frontend/` prefix added.
+
+### Why this matters
+The build **succeeds** either way — Vite only prints a warning (`"base" option should start with a slash`), never an error — so "the deploy succeeded" only means the build pipeline finished, not that the page actually renders. Those are different claims, and conflating them is exactly how this shipped unnoticed.
+
+---
+
+## Diagnosing a blank white production page without guessing
+
+### Question
+Build settings (framework preset, output directory, root directory) were all confirmed correct on Vercel and the page was still blank. What's the actual next step, instead of guessing at more settings?
+
+### Answer
+Two moves, in order: **(1)** check DevTools Console/Network on the live page for the actual error — a blank `#root` with nothing rendered is almost always an uncaught JS exception or a 404 on the script itself, and the message there points straight at the cause instead of another guess. **(2)** Reproduce the exact production artifact locally: `npm run build && npm run preview` (Vite's own preview server, correctly rooted at `dist/`) — not by opening `dist/index.html` directly in something like a "Live Server" editor extension. That extension serves files relative to the *workspace* root, not the `dist` folder, so a perfectly correct build's absolute asset paths (`/assets/...`) resolve to the wrong location and 404 — a false "it's broken" signal that has nothing to do with the actual app.
+
+### Why this matters
+Two different bugs can produce the identical symptom (blank white page, empty `#root`, favicon still visible). The only way to tell them apart is real evidence — a Console error, or a correctly-served local reproduction — not pattern-matching to whatever the last fix happened to be.
+
+---
+
+## A single-page app needs a server-level rewrite for client-side routes
+
+### Question
+Every route worked fine when navigated to by clicking a link, but refreshing on `/login` (or any route besides `/`) showed a 404. Why?
+
+### Answer
+Clicking a link inside the app is intercepted by React Router client-side — no real network request happens, so it always looks fine. A hard refresh (or typing the URL directly, or a bookmark) sends a real HTTP request to the host for that exact path. A static host has no file at `/login` — only one `index.html` exists, and only React Router (running inside the already-loaded JS) knows `/login` is a valid route. The fix is a host-level rewrite telling the server "serve `index.html` for every path, no matter what," e.g. in `vercel.json`:
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+### Why this matters
+This isn't specific to this bug or to Vercel — any client-side-routed SPA (React Router, etc.) needs an equivalent fallback rule on any static host (Netlify, S3+CloudFront, etc.), or every route but the homepage will 404 on refresh.
+
+---
+
+## Vercel forking a repo you don't have admin rights on
+
+### Question
+Why did a duplicate copy of the team repo suddenly appear on a personal GitHub account after connecting it to Vercel?
+
+### Answer
+Vercel's GitHub integration needs permission to install a deploy webhook on the repo it's building from. When the account connecting it only has Contributor-level access (not Admin) on the real repo, Vercel can't get that permission there — so it falls back to forking the repo into that user's own account, where it *does* have full control, and deploys from the fork instead.
+
+### Why this matters
+The fork is a fully independent copy from that point on — changes pushed there don't touch the real team repo, and vice versa. Confusing at first, but genuinely useful as an isolated, zero-risk place to test a fix (like the `base` path bug) before asking someone with real write access to apply it to the shared repo.
+
+---
+
+# Category: Git & Collaboration
+
+## Using git history as evidence, not assumption, to resolve a contradiction
+
+### Question
+A teammate said she'd deployed successfully with "the same `vite.config.ts`" that had just been diagnosed as broken. How do you resolve that without just guessing who's right?
+
+### Answer
+`git log -- <file>`, `git blame -L <range> -- <file>`, and `git diff HEAD -- <file>` gave an exact author and timestamp for the change in question — which showed the breaking line had been committed to `main` only hours earlier, the same day. That either confirms or reframes a claim like "the same file" instead of leaving it as two people's word against each other.
+
+### Why this matters
+Same instinct as reading the actual code instead of trusting a summary of it: when a bug report and a "but it worked for me" claim seem to conflict, check the real git history before assuming either side is mistaken.
+
+---
+
+## `git revert` vs. `git reset --hard` for undoing a commit on a shared branch
+
+### Question
+How do you undo a commit that's already on a branch other people share (and that you may not even own)?
+
+### Answer
+`git revert <commit>` adds a brand-new commit that cancels out the original change. History stays fully intact — the original commit is still there, just followed by one that undoes it — so it's safe on shared/protected branches and doesn't break anyone who already pulled the original commit. `git reset --hard` followed by a force-push actually erases the commit from history, rewriting what everyone else sees; it breaks their local copy the next time they pull, and protected branches usually block force-pushes outright anyway.
+
+### Why this matters
+Default to `revert` on any branch other people share. Reserve `reset --hard` for your own local, not-yet-pushed mistakes.
+
+---
+
+## Empty commits as harmless CI/CD triggers
+
+### Question
+Does a `git commit --allow-empty` made just to trigger a Vercel preview build need to be cleaned up afterward?
+
+### Answer
+No. It has zero file changes, so there's nothing to actually revert — reverting an empty commit just adds another empty commit, achieving nothing. Trying to erase it from history entirely would mean a `reset --hard` + force-push, which risks breaking a shared branch for anyone who's already pulled it, for a purely cosmetic benefit.
+
+### Why this matters
+Not every commit needs to carry a "real" change — a deliberate no-op commit to trigger automation (a build, a webhook) is a normal, harmless pattern, safe to leave in history as-is.
+
+---
+
+## The five-layer pattern for wiring any API into a page
+
+### Question
+"Integrate the API" always feels like one big vague task — what's the actual repeatable shape of it, so it stops feeling that way?
+
+### Answer
+Every endpoint this app wires up passes through the same five layers, always in this order:
+
+1. **API function** (`src/api/*.tsx`) — talks to the backend, nothing else. Just `fetch`, the auth header, error handling. No React.
+2. **Context** (`src/context/*Context.tsx`) — owns the shared state: the data, `isLoading`, `error`, and a `refresh*()` function. Calls the layer-1 function; never calls `fetch` itself. This is the one copy of the data every page reuses instead of refetching.
+3. **Hook** (`src/context/use*.tsx`) — the thin `useContext` wrapper pages actually import. Throws a clear error if the provider isn't mounted, instead of a silent `undefined` three components deep.
+4. **Wiring** (`main.tsx`) — the provider has to actually wrap the app, or layers 1-3 do nothing. **This is the step that's easiest to forget** — writing the context and hook but never mounting the provider is the most common cause of "why is this undefined." Order matters too: anything reading the token has to sit *inside* `AuthProvider`.
+5. **Page** — reads from the hook only, renders loading/error/data states, calls `refresh*()` when it needs fresh data. Never calls the API function or `fetch` directly.
+
+Four things every context needs to actually hold up over time: `isLoading` + `error` state (not just the data), a named `refresh*()` exposed to consumers, a clear-on-logout path, and exactly one fetch trigger on mount/login so two components can't double-fetch.
+
+The "when," separately from the "what": a context can be told to refresh at more than one moment — e.g. `ProfileContext` refreshes once on login, and again after every completed game, so Profile never shows stale data on the next visit.
+
+Full diagram (file-by-file, with the login → refresh and post-game → refresh timelines): see the "API Integration Flow" artifact from the 2026-07-12 session.
+
+### Why this matters
+This is the same five-layer shape for any new endpoint, not just this one — `ExercisesContext` already follows it, and `ProfileContext` (Step 6, combining `achievements.ts` + `workoutSessions.tsx` into one context) is the next one built on it. Once the shape is recognized, a new integration becomes five small checkable steps instead of one big unclear one.
+
+---
