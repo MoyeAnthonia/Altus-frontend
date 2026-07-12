@@ -666,7 +666,6 @@ export class DinoRunGame {
   private handleJump(): void {
     if (!this.sm.is("ACTIVE")) return;
     const onGround = Math.abs(this.dino.y - this.dinoGroundY) < 4;
-    console.log("[Jump] y:", this.dino.y, "groundY:", this.dinoGroundY, "onGround:", onGround);
     if (onGround) {
       this.jumpCount = 1;
       this.dino.vy = JUMP_VEL;
