@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import styles from "./Dashboard.module.css";
 import { useNavigate } from "react-router";
 import { useProfile } from "../../context/useProfile";
+import Spinner from "../../components/Spinner/Spinner";
 
 /* ── Types ── */
 interface DayData {
@@ -87,7 +88,7 @@ function Dashboard() {
       </nav>
 
       {isLoading ? (
-        <p style={{ padding: "24px", textAlign: "center" }}>Loading your stats…</p>
+        <Spinner label="loading your stats..." />
       ) : error ? (
         <p style={{ padding: "24px", textAlign: "center" }}>{error}</p>
       ) : (
