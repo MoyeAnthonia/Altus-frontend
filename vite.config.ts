@@ -30,4 +30,5 @@ export default defineConfig({
   server: {
     sourcemapIgnoreList: (sourcePath) => sourcePath.includes("@mediapipe"),
   },
+  base: "/",
 });

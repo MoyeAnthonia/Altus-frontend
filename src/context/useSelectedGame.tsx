@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { SelectedGameContext } from "./SelectedGameContext";
+import { SelectedGameContext } from "./SelectedGameContextBase";
 
 export function useSelectedGame() {
   const context = useContext(SelectedGameContext);

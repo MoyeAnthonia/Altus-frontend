@@ -1,14 +1,15 @@
-import { createContext, useMemo, useState, type ReactNode } from "react";
-
-type SelectedGameContextType = {
-  gameId: string | null;
-  setGameId: (gameId: string) => void;
-};
-
-export const SelectedGameContext = createContext<SelectedGameContextType | null>(null);
+import { useMemo, useState, type ReactNode } from "react";
+import { SelectedGameContext } from "./SelectedGameContextBase";
 
 export function SelectedGameProvider({ children }: { children: ReactNode }) {
-  const [gameId, setGameId] = useState<string | null>(null);
+  const [gameId, setGameIdState] = useState<string | null>(() =>
+    sessionStorage.getItem("al_game_id"),
+  );
+
+  const setGameId = (id: string) => {
+    setGameIdState(id);
+    sessionStorage.setItem("al_game_id", id);
+  };
 
   const value = useMemo(() => ({ gameId, setGameId }), [gameId]);
 

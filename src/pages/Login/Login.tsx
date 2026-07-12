@@ -3,6 +3,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
 import { loginUser, registerUser } from "../../api/auth";
+import { Spinner } from "../../components/Spinner/Spinner";
 import styles from "./Login.module.css";
 
 type LoginInputs = {
@@ -180,7 +181,7 @@ function LoginPage() {
                   )}
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Play Now →"}
+                    {isLoading ? <Spinner size="sm" label="Signing in..." /> : "Play Now →"}
                   </button>
 
                   {/* <button type="button" className={styles.lgForgot}>
@@ -269,7 +270,11 @@ function LoginPage() {
                   )}
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create Account →"}
+                    {isLoading ? (
+                      <Spinner size="sm" label="Creating account..." />
+                    ) : (
+                      "Create Account →"
+                    )}
                   </button>
                 </form>
               </div>
