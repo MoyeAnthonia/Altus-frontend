@@ -21,6 +21,17 @@
     font-size: 14px;
 }
 
+.spinnerWrapSm {
+    padding: 0;
+    gap: 8px;
+}
+
+.spinnerSm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);
