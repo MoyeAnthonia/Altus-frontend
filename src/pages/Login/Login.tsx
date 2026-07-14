@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
-import { loginUser, registerUser } from "../../api/auth";
+import { loginUser, registerUser, googleAuth } from "../../api/auth";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import styles from "./Login.module.css";
 
 type LoginInputs = {
@@ -45,6 +46,24 @@ function LoginPage() {
     } catch (error) {
       if (error instanceof Error) {
         setLoginError("root", { message: error.message });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) return;
+    setIsLoading(true);
+
+    try {
+      const result = await googleAuth(credentialResponse.credential);
+      login(result.token, result.user);
+      navigate("/");
+    } catch (error) {
+      if (error instanceof Error) {
+        const setError = mode === "login" ? setLoginError : setRegisterError;
+        setError("root", { message: error.message });
       }
     } finally {
       setIsLoading(false);
@@ -291,6 +310,25 @@ function LoginPage() {
               </p>
             </>
           )}
+
+          <div className={styles.lgDivider}>
+            <span className={styles.lgDividerLine}></span>
+            <span className={styles.lgDividerText}>OR CONTINUE WITH</span>
+            <span className={styles.lgDividerLine}></span>
+          </div>
+
+          <div className={styles.lgGoogleWrap}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                const setError = mode === "login" ? setLoginError : setRegisterError;
+                setError("root", { message: "Google sign-in failed" });
+              }}
+              theme="filled_black"
+              shape="pill"
+              width="328"
+            />
+          </div>
         </div>
       </div>
     </div>
