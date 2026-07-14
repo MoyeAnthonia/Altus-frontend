@@ -7,19 +7,22 @@ import { AuthProvider } from "./context/AuthContext.tsx";
 import { ExercisesProvider } from "./context/ExercisesContext.tsx";
 import { ProfileProvider } from "./context/ProfileContext.tsx";
 import { SelectedGameProvider } from "./context/SelectedGameContext.tsx";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <ExercisesProvider>
-          <ProfileProvider>
-            <SelectedGameProvider>
-              <App />
-            </SelectedGameProvider>
-          </ProfileProvider>
-        </ExercisesProvider>
-      </AuthProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <ExercisesProvider>
+            <ProfileProvider>
+              <SelectedGameProvider>
+                <App />
+              </SelectedGameProvider>
+            </ProfileProvider>
+          </ExercisesProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </BrowserRouter>
   </StrictMode>,
 );

@@ -37,4 +37,18 @@ async function loginUser(email: string, password: string) {
   return data;
 }
 
-export { registerUser, loginUser };
+// google login
+async function googleAuth(id_token: string) {
+  const response = await fetch(`${BASE_URL}/v1/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error ?? "Google sign-in failed");
+  }
+  return response.json();
+}
+
+export { registerUser, loginUser, googleAuth };

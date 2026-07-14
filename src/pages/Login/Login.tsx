@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
-import { loginUser, registerUser } from "../../api/auth";
+import { loginUser, registerUser, googleAuth } from "../../api/auth";
 import { Spinner } from "../../components/Spinner/Spinner";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import styles from "./Login.module.css";
 
 type LoginInputs = {
@@ -26,6 +27,27 @@ function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Google's button takes a fixed pixel width — measure the card's actual
+  // content width so it never overflows on narrow screens.
+  const googleWrapRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(328);
+
+  useEffect(() => {
+    const el = googleWrapRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = Math.floor(entry.contentRect.width);
+      // Google's widget silently fails to render below ~200px and caps at
+      // 400px — clamp so we never ask it for a width outside that range.
+      if (measured > 0) {
+        setGoogleBtnWidth(Math.min(400, Math.max(220, measured)));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // ── LOGIN FORM ──
   // its own useForm instance, scoped just to email + password
   const {
@@ -45,6 +67,24 @@ function LoginPage() {
     } catch (error) {
       if (error instanceof Error) {
         setLoginError("root", { message: error.message });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) return;
+    setIsLoading(true);
+
+    try {
+      const result = await googleAuth(credentialResponse.credential);
+      login(result.token, result.user);
+      navigate("/");
+    } catch (error) {
+      if (error instanceof Error) {
+        const setError = mode === "login" ? setLoginError : setRegisterError;
+        setError("root", { message: error.message });
       }
     } finally {
       setIsLoading(false);
@@ -181,7 +221,11 @@ function LoginPage() {
                   )}
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
-                    {isLoading ? <Spinner size="sm" label="Signing in..." /> : "Play Now →"}
+                    {isLoading ? (
+                      <Spinner size="sm" label="Signing in..." labelClassName={styles.lgSpinnerLabel} />
+                    ) : (
+                      "Play Now →"
+                    )}
                   </button>
 
                   {/* <button type="button" className={styles.lgForgot}>
@@ -271,7 +315,11 @@ function LoginPage() {
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
                     {isLoading ? (
-                      <Spinner size="sm" label="Creating account..." />
+                      <Spinner
+                        size="sm"
+                        label="Creating account..."
+                        labelClassName={styles.lgSpinnerLabel}
+                      />
                     ) : (
                       "Create Account →"
                     )}
@@ -291,6 +339,25 @@ function LoginPage() {
               </p>
             </>
           )}
+
+          <div className={styles.lgDivider}>
+            <span className={styles.lgDividerLine}></span>
+            <span className={styles.lgDividerText}>OR CONTINUE WITH</span>
+            <span className={styles.lgDividerLine}></span>
+          </div>
+
+          <div className={styles.lgGoogleWrap} ref={googleWrapRef}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                const setError = mode === "login" ? setLoginError : setRegisterError;
+                setError("root", { message: "Google sign-in failed" });
+              }}
+              theme="filled_black"
+              shape="pill"
+              width={googleBtnWidth}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -31,25 +31,12 @@ function Navbar({ brand = "ALTUS", links = defaultLinks }: NavbarProps) {
   // 👇 active section state
   const [activeSection, setActiveSection] = useState("");
 
-  // true once the user has scrolled away from the very top of the page —
-  // used to hide the navbar's bottom border while scrolled
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => {
-      // small threshold so a 1px wobble doesn't flicker the border
-      setIsScrolled(window.scrollY > 8);
-    };
-
-    onScroll(); // set the correct state on first render (e.g. page restored mid-scroll)
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   const navGames = () => {
+    setOpen(false);
     nav("/workout");
   };
   const navLogin = () => {
+    setOpen(false);
     nav("/login");
   };
 
@@ -78,9 +65,9 @@ function Navbar({ brand = "ALTUS", links = defaultLinks }: NavbarProps) {
   }, []);
 
   return (
-    <nav className={isScrolled ? `${styles.navbar} ${styles.navbarScrolled}` : styles.navbar}>
+    <nav className={styles.navbar}>
       {/* Logo */}
-      <Link to="/" className={styles.brandLogo}>
+      <Link to="/" className={styles.brandLogo} onClick={() => setOpen(false)}>
         <img src={logo} alt="Altus Logo" width="40" height="40" />
         <span className={styles.brandName}>{brand}</span>
       </Link>
@@ -106,6 +93,7 @@ function Navbar({ brand = "ALTUS", links = defaultLinks }: NavbarProps) {
 
                 <a
                   href={item.href}
+                  onClick={() => setOpen(false)}
                   className={
                     activeSection === item.href.slice(1)
                       ? `${styles.link} ${styles.active}`
