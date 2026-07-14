@@ -32,6 +32,10 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-main-color);
   color: #fff;
+  /* Navbar is position: fixed (~72px tall: 40px logo + 2×1rem padding) and
+     no longer takes up space in normal flow, so page content needs this
+     padding to avoid starting out hidden underneath it */
+  padding-top: 72px;
 }
 
 .wrap {
