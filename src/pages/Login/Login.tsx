@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
@@ -26,6 +26,27 @@ function LoginPage() {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Google's button takes a fixed pixel width — measure the card's actual
+  // content width so it never overflows on narrow screens.
+  const googleWrapRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(328);
+
+  useEffect(() => {
+    const el = googleWrapRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = Math.floor(entry.contentRect.width);
+      // Google's widget silently fails to render below ~200px and caps at
+      // 400px — clamp so we never ask it for a width outside that range.
+      if (measured > 0) {
+        setGoogleBtnWidth(Math.min(400, Math.max(220, measured)));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // ── LOGIN FORM ──
   // its own useForm instance, scoped just to email + password
@@ -317,7 +338,7 @@ function LoginPage() {
             <span className={styles.lgDividerLine}></span>
           </div>
 
-          <div className={styles.lgGoogleWrap}>
+          <div className={styles.lgGoogleWrap} ref={googleWrapRef}>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => {
@@ -326,7 +347,7 @@ function LoginPage() {
               }}
               theme="filled_black"
               shape="pill"
-              width="328"
+              width={googleBtnWidth}
             />
           </div>
         </div>
