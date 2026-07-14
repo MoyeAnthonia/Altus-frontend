@@ -11,27 +11,39 @@
   border: 1px solid var(--cyan);
   transition:
     transform 0.12s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background 0.15s ease;
   white-space: nowrap;
 }
+
+/* primary: filled cyan CTA — resting shadow is a faint ambient lift,
+   the real glow only shows up on hover */
 .primary {
   background: linear-gradient(135deg, var(--cyan), #2f7bff);
   color: #04101f;
-  box-shadow: 0 8px 22px -10px var(--cyan);
+  box-shadow: 0 3px 8px -4px rgba(56, 225, 255, 0.35);
 }
+.primary:hover {
+  box-shadow: 0 6px 14px -4px rgba(56, 225, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* secondary: outlined, back to the cyan accent (gold clashed against the
+   glass navbar's blue tint) — same subtle-by-default, glow-on-hover shape */
 .secondary {
   background: transparent;
   color: var(--cyan);
-  box-shadow: 0 8px 22px -10px var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 3px 8px -4px rgba(56, 225, 255, 0.25);
 }
-button:hover {
-  box-shadow:
-    0 0 0 1px var(--cyan),
-    0 10px 26px -14px var(--cyan);
-  border: 1px solid transparent;
+.secondary:hover {
+  background: rgba(56, 225, 255, 0.08);
+  box-shadow: 0 6px 14px -4px rgba(56, 225, 255, 0.4);
+  transform: translateY(-1px);
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }

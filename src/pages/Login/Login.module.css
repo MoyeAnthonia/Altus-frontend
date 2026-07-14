@@ -5,9 +5,10 @@
   --amber: #f59e0b;
   --pixel: "Press Start 2P", monospace;
   --mono: "JetBrains Mono", monospace;
-  /* the site Navbar (sticky, ~74px) sits above this page and eats into the
-     viewport, so 100vh alone pushes the bottom of the card past the fold */
-  min-height: calc(100vh - 74px);
+  /* the site Navbar is fixed (~72px) and body already reserves that much
+     top padding for it — subtract the same amount here so 100vh doesn't
+     double-count that space and push the bottom of the card off-screen */
+  min-height: calc(100vh - 72px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow-x: hidden;
@@ -262,6 +263,17 @@
   font-size: 0.8rem;
   color: #f87171;
   margin-top: -8px;
+}
+
+/* the Spinner's default label (white, 14px body font) is styled for sitting
+   on the dark page background elsewhere in the app — inside this amber,
+   pixel-font button it needs to match the button's own text instead */
+.lgSubmitBtn .lgSpinnerLabel {
+  font-family: var(--pixel);
+  font-size: clamp(0.55rem, 1.6vw, 0.62rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(10, 14, 35);
 }
 
 /* ── SUBMIT BUTTON ── */

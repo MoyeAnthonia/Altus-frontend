@@ -1,20 +1,16 @@
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  border-bottom: 2px solid #221b59;
-  transition: border-color 0.25s ease;
-}
-
-/* Scrolled away from the top: keep the 2px border for layout stability,
-   just make it invisible — swapping to border: none would make the page
-   content jump up by 2px every time the border toggles */
-.navbarScrolled {
-  border-bottom-color: transparent;
+  background: rgba(10, 14, 35, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 /* ---- Brand ---- */
@@ -78,6 +74,7 @@
   color: #e8e8ff;
   font-size: 1.4rem;
   cursor: pointer;
+  outline: none;
 }
 
 /* ---- Mobile ---- */
@@ -102,11 +99,26 @@
   .menu.open {
     display: flex; /* shown when open === true */
   }
-  .links,
-  .actions {
+  .links {
     flex-direction: column;
     align-items: flex-start;
     width: 100%;
     gap: 1.25rem;
+  }
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  /* the CTA buttons (Start Playing / Sign In) default to a desktop-sized
+     footprint — trim them down so they read as proportional to the plain
+     text links above instead of towering over them */
+  .actions > button {
+    width: 100%;
+    text-align: center;
+    padding: 0.65rem 1rem;
+    font-size: 8px;
   }
 }

@@ -221,7 +221,11 @@ function LoginPage() {
                   )}
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
-                    {isLoading ? <Spinner size="sm" label="Signing in..." /> : "Play Now →"}
+                    {isLoading ? (
+                      <Spinner size="sm" label="Signing in..." labelClassName={styles.lgSpinnerLabel} />
+                    ) : (
+                      "Play Now →"
+                    )}
                   </button>
 
                   {/* <button type="button" className={styles.lgForgot}>
@@ -311,7 +315,11 @@ function LoginPage() {
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
                     {isLoading ? (
-                      <Spinner size="sm" label="Creating account..." />
+                      <Spinner
+                        size="sm"
+                        label="Creating account..."
+                        labelClassName={styles.lgSpinnerLabel}
+                      />
                     ) : (
                       "Create Account →"
                     )}
