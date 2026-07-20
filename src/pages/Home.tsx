@@ -22,7 +22,7 @@ type HeroProps = {
 
 const defaultStats: Stat[] = [
   { value: "2", label: "Games" },
-  { value: "5", label: "Players" },
+  { value: "8", label: "Players" },
   { value: "★ 4.9", label: "Rating" },
 ];
 
@@ -58,7 +58,7 @@ const USERSTYPECARDSARR = [
     accent: "orange",
     title: "Your chair is killing you",
     description:
-      "Sciatica, piriformis syndrome, lower back pain, and tech neck — sitting disease is real. Eight hours at a desk compresses your spine and pinches your sciatic nerve, causing that electric shooting pain down your leg. Altus reminds you to move your body every 60 minutes (or more, or less).",
+      "Sciatica, piriformis syndrome, lower back pain, and tech neck - sitting disease is real. Eight hours at a desk compresses your spine and pinches your sciatic nerve, causing that electric shooting pain down your leg.",
     ctaLabel: "Add movement before the damage sets in",
   },
   {
@@ -130,7 +130,7 @@ function Home({
               aria-label="Start Game"
             />
           )}
-          <Button label="Watch Demo" variant="secondary" aria-label="Watch App Demo" />
+          <Button label="Watch Demo" variant="secondary" disabled aria-label="Watch App Demo" />
         </div>
       </div>
 
