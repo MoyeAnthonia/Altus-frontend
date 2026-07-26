@@ -130,7 +130,18 @@ function Home({
               aria-label="Start Game"
             />
           )}
-          <Button label="Watch Demo" variant="secondary" disabled aria-label="Watch App Demo" />
+          <Button
+            onClick={() =>
+              window.open(
+                "https://www.youtube.com/watch?v=1txBjZHo2U0",
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+            label="Watch Demo"
+            variant="secondary"
+            aria-label="Watch App Demo"
+          />
         </div>
       </div>
 
