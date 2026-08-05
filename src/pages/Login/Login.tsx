@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
@@ -73,24 +73,6 @@ function LoginPage() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) return;
-    setIsLoading(true);
-
-    try {
-      const result = await googleAuth(credentialResponse.credential);
-      login(result.token, result.user);
-      navigate("/");
-    } catch (error) {
-      if (error instanceof Error) {
-        const setError = mode === "login" ? setLoginError : setRegisterError;
-        setError("root", { message: error.message });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // ── REGISTER FORM ──
   // a second, separate useForm instance for username + email + password
   const {
@@ -116,6 +98,32 @@ function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleSuccess = useCallback(
+    async (credentialResponse: CredentialResponse) => {
+      if (!credentialResponse.credential) return;
+      setIsLoading(true);
+
+      try {
+        const result = await googleAuth(credentialResponse.credential);
+        login(result.token, result.user);
+        navigate("/");
+      } catch (error) {
+        if (error instanceof Error) {
+          const setError = mode === "login" ? setLoginError : setRegisterError;
+          setError("root", { message: error.message });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mode, setLoginError, setRegisterError, login, navigate],
+  );
+
+  const handleGoogleError = useCallback(() => {
+    const setError = mode === "login" ? setLoginError : setRegisterError;
+    setError("root", { message: "Google sign-in failed" });
+  }, [mode, setLoginError, setRegisterError]);
 
   return (
     <div className={styles.lgPage}>
@@ -222,7 +230,11 @@ function LoginPage() {
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
                     {isLoading ? (
-                      <Spinner size="sm" label="Signing in..." labelClassName={styles.lgSpinnerLabel} />
+                      <Spinner
+                        size="sm"
+                        label="Signing in..."
+                        labelClassName={styles.lgSpinnerLabel}
+                      />
                     ) : (
                       "Play Now →"
                     )}
@@ -349,10 +361,7 @@ function LoginPage() {
           <div className={styles.lgGoogleWrap} ref={googleWrapRef}>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={() => {
-                const setError = mode === "login" ? setLoginError : setRegisterError;
-                setError("root", { message: "Google sign-in failed" });
-              }}
+              onError={handleGoogleError}
               theme="filled_black"
               shape="pill"
               width={googleBtnWidth}
