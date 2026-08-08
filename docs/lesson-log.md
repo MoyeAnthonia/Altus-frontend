@@ -201,6 +201,34 @@ Same `??` fallback pattern from earlier (error messages), applied to a lookup ta
 
 ---
 
+## Chained ternaries — how one `?:` produces three outcomes, not two
+
+### Question
+`armGestureDetector.tsx` has `const detected = rightRaised ? "confirm" : leftRaised ? "cancel" : null;` — a single ternary is supposed to be true/false, so how does this produce three possible values?
+
+### Answer
+The `?:` (ternary/conditional operator) itself always only picks between two things. What's happening here is the "else" branch of the first ternary is *itself* another ternary — a **chained** ternary. JavaScript's ternary groups right-to-left, so this is really:
+
+```ts
+const detected = rightRaised ? "confirm" : (leftRaised ? "cancel" : null);
+```
+
+Evaluated in order: check `rightRaised` first — if true, the whole thing is `"confirm"` and `leftRaised` is never even checked. If false, evaluate the parenthesized part: check `leftRaised` — `"cancel"` if true, `null` if false. Identical logic to:
+
+```ts
+let detected;
+if (rightRaised) detected = "confirm";
+else if (leftRaised) detected = "cancel";
+else detected = null;
+```
+
+The ternary version is preferred here specifically because it's one **expression** — it can be assigned directly with `const` in a single line, where the `if/else` version needs `let` and four lines.
+
+### Why this matters
+Chaining ternaries two levels deep (three outcomes) is a common, readable pattern. Much beyond that — four or five nested levels — most style guides call it hard to read at a glance and prefer `if/else` or a lookup object instead. Worth recognizing the shape when it's 2-3 branches, and worth switching away from it once it grows past that.
+
+---
+
 # Category: React Hooks & Rendering
 
 ## `useCallback`, `useMemo`, and `useEffect`
@@ -784,6 +812,38 @@ After fixing `mediapipePlayer.tsx`'s teardown, the camera indicator still stayed
 
 ### Why this matters
 When a bug report says "the camera," check whether there's actually more than one camera stream backing that feature before assuming one fix covers it. Grepping for every `getUserMedia` call in the codebase (not just the one file you expect) is what surfaced this.
+
+**Update:** this second stream was later removed entirely — see "Consolidating two `getUserMedia()` calls into one" below. Tracking and stopping it separately was the *first* fix; realizing it wasn't needed at all was a separate, later step.
+
+---
+
+## Consolidating two `getUserMedia()` calls into one
+
+### Question
+`ExercisePage`'s own `openCamera()` stream and `mediapipePlayer.tsx`'s stream both existed — was the second one actually necessary, or just redundant?
+
+### Answer
+Redundant. Tracing what each one actually fed: `openCamera()`'s stream fed `MotionCard`'s own `<video ref={videoRef}>` — but `#mediapipe-canvas` (fed by `mediapipePlayer.tsx`'s stream) is rendered `position: absolute; inset: 0` directly on top of it, painting an opaque frame every tick. So `videoRef`'s video was running camera hardware the whole time for a picture nobody could ever actually see. Separately, none of the setup-checklist state (`isCalibrated`, `hasPose`, `bodyInFrame`, `goodLighting`) ever read from that stream either — all of it already came from `mediapipePlayer.tsx`'s own `"mv:pose"` broadcast.
+
+The fix: delete `openCamera()`, `streamRef`, and its cleanup effect entirely. The "Open Camera" button's `onClick` becomes `() => setCameraEnabled(true)` — just flips the flag that already starts `useMediaPipe()`. `isCameraOpen` was replaced by the hook's own `isReady` (already returned, driven by `"mv:mediapipe-ready"`); `cameraFailed` needed a new `hasFailed` added to the hook's return value, since the promise rejection from `initMediaPipe()` was previously only `console.warn`'d and silently discarded, never surfaced anywhere.
+
+### Why this matters
+"Are these actually needed, or did they just accumulate?" is worth asking about duplicated-looking code, not just assuming the duplication was intentional. Tracing what each stream's *output* was actually consumed by (not just what created it) is what proved one was pure overhead — a visually-covered `<video>` and permission check duplicating one `mediapipePlayer.tsx` already did on its own.
+
+---
+
+## Connecting a module-scope loop to a DOM element it never receives as a prop
+
+### Question
+`mediapipePlayer.tsx`'s `processFrame()` paints onto `<canvas id="mediapipe-canvas">`, which is rendered by `ExercisePage` — but `mediapipePlayer.tsx` never imports `ExercisePage`, and nothing passes it a ref. How does it find that canvas?
+
+### Answer
+`document.getElementById("mediapipe-canvas")`, called fresh every single frame inside `processFrame()`. Not a prop, not a ref, not an import — just two files independently agreeing on the same literal string (`Exercise.tsx` writes `id="mediapipe-canvas"` in its JSX; `mediapipePlayer.tsx` searches for that exact string). It works because `mediapipePlayer.tsx` is a plain function, not a component or hook, so it has no React-idiomatic way to *receive* a ref — `document.getElementById` is the same fallback tool a plain HTML page with no framework at all would use.
+
+Timing matters here too: the canvas doesn't exist in the DOM until `isReady` flips `true` (it's conditionally rendered). `processFrame()`'s loop is already running by then, so for the first few frames `getElementById` returns `null` and painting is silently skipped (`canvas?.getContext("2d")` short-circuits) — harmless, and self-resolving the moment React actually mounts the element.
+
+### Why this matters
+This is a **name-based** connection with zero compiler checking. Rename the `id` in one file without the other and nothing errors — the skeleton overlay just silently stops appearing, with no warning anywhere. Worth recognizing this pattern (and its fragility) whenever two files seem connected but neither imports the other.
 
 ---
 
