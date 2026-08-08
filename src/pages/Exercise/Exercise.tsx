@@ -24,6 +24,17 @@ const VISIBILITY_OK = 0.6;
 
 function ExercisePage() {
   const nav = useNavigate();
+
+  // ── "STREAM #1" — see openCamera() below for where this is actually
+  // opened. This feeds MotionCard's own <video ref={videoRef}> element —
+  // but that video ends up completely hidden the moment #mediapipe-canvas
+  // (fed by a SEPARATE, second getUserMedia() call inside
+  // mediapipePlayer.tsx's initMediaPipe() — see that file) is layered on
+  // top of it. None of the setup-checklist logic below (isCalibrated,
+  // hasPose, bodyInFrame, goodLighting) reads from this stream at all —
+  // all of that comes from the *other* camera's "mv:pose" broadcast.
+  // This stream's only real jobs today: trigger the permission prompt,
+  // and gate isCameraOpen/cameraFailed for the button ↔ canvas UI swap.
   const videoRef = useRef<HTMLVideoElement>(null);
   // Holds the preview stream so we can stop it manually — a MediaStream's
   // tracks keep the camera hardware active even after the <video> element
@@ -105,6 +116,11 @@ function ExercisePage() {
     };
   }, []);
 
+  // Fired by the "Open Camera" button below. This is where "stream #1"
+  // (see the comment at videoRef/streamRef above) actually gets created —
+  // its own independent navigator.mediaDevices.getUserMedia() call,
+  // separate from the one mediapipePlayer.tsx makes for itself once
+  // cameraEnabled flips to true a few lines down.
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
