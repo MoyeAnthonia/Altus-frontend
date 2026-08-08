@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/useAuth";
@@ -30,22 +30,26 @@ function LoginPage() {
   // Google's button takes a fixed pixel width — measure the card's actual
   // content width so it never overflows on narrow screens.
   const googleWrapRef = useRef<HTMLDivElement>(null);
-  const [googleBtnWidth, setGoogleBtnWidth] = useState(328);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(computeGoogleBtnWidth);
+
+  function computeGoogleBtnWidth() {
+    if (typeof window === "undefined") return 300;
+    const w = window.innerWidth;
+    if (w <= 380) return 240; // narrowest phones
+    if (w <= 600) return 280; // phone tier
+    if (w <= 768) return 320; // tablet tier (card content ≈ 352px here)
+    return 300; // desktop (card content ≈ 328px here)
+  }
 
   useEffect(() => {
-    const el = googleWrapRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver(([entry]) => {
-      const measured = Math.floor(entry.contentRect.width);
-      // Google's widget silently fails to render below ~200px and caps at
-      // 400px — clamp so we never ask it for a width outside that range.
-      if (measured > 0) {
-        setGoogleBtnWidth(Math.min(400, Math.max(220, measured)));
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
+    function handleResize() {
+      setGoogleBtnWidth((prev) => {
+        const next = computeGoogleBtnWidth();
+        return prev === next ? prev : next; // only update if the tier actually changed
+      });
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // ── LOGIN FORM ──
@@ -67,24 +71,6 @@ function LoginPage() {
     } catch (error) {
       if (error instanceof Error) {
         setLoginError("root", { message: error.message });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) return;
-    setIsLoading(true);
-
-    try {
-      const result = await googleAuth(credentialResponse.credential);
-      login(result.token, result.user);
-      navigate("/");
-    } catch (error) {
-      if (error instanceof Error) {
-        const setError = mode === "login" ? setLoginError : setRegisterError;
-        setError("root", { message: error.message });
       }
     } finally {
       setIsLoading(false);
@@ -116,6 +102,32 @@ function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleSuccess = useCallback(
+    async (credentialResponse: CredentialResponse) => {
+      if (!credentialResponse.credential) return;
+      setIsLoading(true);
+
+      try {
+        const result = await googleAuth(credentialResponse.credential);
+        login(result.token, result.user);
+        navigate("/");
+      } catch (error) {
+        if (error instanceof Error) {
+          const setError = mode === "login" ? setLoginError : setRegisterError;
+          setError("root", { message: error.message });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mode, setLoginError, setRegisterError, login, navigate],
+  );
+
+  const handleGoogleError = useCallback(() => {
+    const setError = mode === "login" ? setLoginError : setRegisterError;
+    setError("root", { message: "Google sign-in failed" });
+  }, [mode, setLoginError, setRegisterError]);
 
   return (
     <div className={styles.lgPage}>
@@ -222,7 +234,11 @@ function LoginPage() {
 
                   <button type="submit" className={styles.lgSubmitBtn} disabled={isLoading}>
                     {isLoading ? (
-                      <Spinner size="sm" label="Signing in..." labelClassName={styles.lgSpinnerLabel} />
+                      <Spinner
+                        size="sm"
+                        label="Signing in..."
+                        labelClassName={styles.lgSpinnerLabel}
+                      />
                     ) : (
                       "Play Now →"
                     )}
@@ -349,10 +365,7 @@ function LoginPage() {
           <div className={styles.lgGoogleWrap} ref={googleWrapRef}>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={() => {
-                const setError = mode === "login" ? setLoginError : setRegisterError;
-                setError("root", { message: "Google sign-in failed" });
-              }}
+              onError={handleGoogleError}
               theme="filled_black"
               shape="pill"
               width={googleBtnWidth}
