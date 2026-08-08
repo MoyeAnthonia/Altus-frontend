@@ -25,33 +25,35 @@ const VISIBILITY_OK = 0.6;
 function ExercisePage() {
   const nav = useNavigate();
 
-  // ── "STREAM #1" — see openCamera() below for where this is actually
-  // opened. This feeds MotionCard's own <video ref={videoRef}> element —
-  // but that video ends up completely hidden the moment #mediapipe-canvas
-  // (fed by a SEPARATE, second getUserMedia() call inside
-  // mediapipePlayer.tsx's initMediaPipe() — see that file) is layered on
-  // top of it. None of the setup-checklist logic below (isCalibrated,
-  // hasPose, bodyInFrame, goodLighting) reads from this stream at all —
-  // all of that comes from the *other* camera's "mv:pose" broadcast.
-  // This stream's only real jobs today: trigger the permission prompt,
-  // and gate isCameraOpen/cameraFailed for the button ↔ canvas UI swap.
+  // MotionCard renders <video ref={videoRef}> internally and requires this
+  // prop — but nothing attaches a stream to it anymore. There used to be a
+  // second, independent getUserMedia() call in this file feeding it (see
+  // docs/mediapipe-from-scratch.md §5.1-5.2 for that history); it was
+  // removed because #mediapipe-canvas below always painted over it anyway.
+  // The one real camera stream now lives entirely in mediapipePlayer.tsx,
+  // started via useMediaPipe() below.
   const videoRef = useRef<HTMLVideoElement>(null);
-  // Holds the preview stream so we can stop it manually — a MediaStream's
-  // tracks keep the camera hardware active even after the <video> element
-  // showing it unmounts, unless something explicitly calls track.stop().
-  const streamRef = useRef<MediaStream | null>(null);
 
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  // Flipping this to true is the ONLY thing that starts the camera — see
+  // useMediaPipe()'s effect, which is gated on this exact flag.
   const [cameraEnabled, setCameraEnabled] = useState(false);
-  const [cameraFailed, setCameraFailed] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [hasPose, setHasPose] = useState(false);
   const [bodyInFrame, setBodyInFrame] = useState(false);
   const [goodLighting, setGoodLighting] = useState(false);
 
-  const { isCalibrated } = useMediaPipe({ enabled: cameraEnabled });
+  // isReady: true once mediapipePlayer.tsx's camera + model have actually
+  // started (drives the button ↔ canvas swap in the JSX below).
+  // hasFailed: true if getUserMedia()/model loading rejected — e.g. camera
+  // permission denied (drives the "Camera Detected: fail" checklist row).
+  const { isCalibrated, isReady, hasFailed } = useMediaPipe({ enabled: cameraEnabled });
 
-  // Read live pose landmarks to score "body in frame" and "good lighting"
+  // Read live pose landmarks to score "body in frame" and "good lighting".
+  // "mv:pose" is the same broadcast squatDetector.tsx listens to for
+  // calibration — this component is just a second, independent listener
+  // on it (see docs/mediapipe-from-scratch.md §7 for how that's not a
+  // conflict — any number of addEventListener calls for the same name all
+  // fire).
   useEffect(() => {
     if (!cameraEnabled) return;
 
@@ -77,7 +79,7 @@ function ExercisePage() {
     {
       id: "camera",
       label: "Camera Detected",
-      status: cameraFailed ? "fail" : isCalibrated ? "ok" : cameraEnabled ? "checking" : "pending",
+      status: hasFailed ? "fail" : isCalibrated ? "ok" : cameraEnabled ? "checking" : "pending",
     },
     {
       id: "lighting",
@@ -107,36 +109,6 @@ function ExercisePage() {
     return () => clearTimeout(timer);
   }, [allReady, hasStarted]);
 
-  // Stop the camera when this page unmounts — back button, "Change
-  // Difficulty", or any other navigation away. Without this the webcam
-  // stays on in the background since nothing else holds a reference to it.
-  useEffect(() => {
-    return () => {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-    };
-  }, []);
-
-  // Fired by the "Open Camera" button below. This is where "stream #1"
-  // (see the comment at videoRef/streamRef above) actually gets created —
-  // its own independent navigator.mediaDevices.getUserMedia() call,
-  // separate from the one mediapipePlayer.tsx makes for itself once
-  // cameraEnabled flips to true a few lines down.
-  const openCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraOpen(true);
-      }
-      setCameraEnabled(true);
-      setCameraFailed(false);
-    } catch (err) {
-      console.error("Camera access denied:", err);
-      setCameraFailed(true);
-    }
-  };
-
   const profileNavigate = () => {
     nav("/profile");
   };
@@ -150,14 +122,23 @@ function ExercisePage() {
       </header>
 
       <div className={styles.gphArena}>
+        {/* videoRef is passed only because MotionCard's prop type requires
+            it — its underlying <video> never receives a stream now (see
+            the comment at videoRef's declaration above). What's actually
+            visible here, once isReady flips true, is #mediapipe-canvas —
+            painted every frame by mediapipePlayer.tsx's own camera. */}
         <MotionCard
           videoRef={videoRef}
           label="Squat Detection"
-          showGuide={!isCameraOpen}
+          showGuide={!isReady}
           className={styles.gphMotion}
         >
-          {!isCameraOpen && <Button label="Open Camera" onClick={openCamera} />}
-          {isCameraOpen && (
+          {/* Clicking this doesn't request the camera itself — it just
+              flips cameraEnabled, which is what useMediaPipe() above is
+              gated on. The actual getUserMedia() call happens inside
+              mediapipePlayer.tsx once that effect fires. */}
+          {!isReady && <Button label="Open Camera" onClick={() => setCameraEnabled(true)} />}
+          {isReady && (
             <canvas
               id="mediapipe-canvas"
               width={640}

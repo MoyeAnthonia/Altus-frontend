@@ -281,12 +281,19 @@ You'll see both of these as small constants (frame counts / millisecond
 timers) once we look at the real detector code — they're not new concepts,
 just "step 6, made less twitchy."
 
-## 5.1. Why there are really two cameras, not one
+## 5.1. Why there were really two cameras, not one (historical — since consolidated)
+
+> **Update:** this section describes the state of the code *before* the
+> two streams were consolidated into one. `openCamera()`, `streamRef`, and
+> stream #1 described below no longer exist in `Exercise.tsx` — kept here
+> because it's exactly the reasoning that led to removing it. See
+> `docs/lesson-log.md` § "Consolidating two `getUserMedia()` calls into
+> one" for what changed and why.
 
 It's tempting to assume "the hidden video feeds the model, the visible
 skeleton view is the other camera" — that's not quite it. The visible
 skeleton view **is not its own camera at all**. Tracing the actual flow in
-`Exercise.tsx`:
+`Exercise.tsx`, as it was at the time:
 
 1. Clicking "Open Camera" runs `openCamera()`, which calls `getUserMedia()`
    itself — **stream #1** — and attaches it to `videoRef`, feeding
