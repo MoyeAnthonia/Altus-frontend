@@ -18,26 +18,28 @@ function App() {
   return (
     <>
       <Navbar />
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Home />
-              <Features />
-              <AudienceSection />
-              <SelectWorkoutSection />
-            </>
-          }
-        />
-        <Route path="/profile" element={<Dashboard />} />
-        <Route path="/level" element={<LevelSection />} />
-        <Route path="/games" element={<GamePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/workout" element={<WorkoutSection />} />
-        <Route path="/exercise" element={<ExercisePage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <main className="app-main">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <Home />
+                <Features />
+                <AudienceSection />
+                <SelectWorkoutSection />
+              </>
+            }
+          />
+          <Route path="/profile" element={<Dashboard />} />
+          <Route path="/level" element={<LevelSection />} />
+          <Route path="/games" element={<GamePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/workout" element={<WorkoutSection />} />
+          <Route path="/exercise" element={<ExercisePage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
       <Footer />
     </>
   );

@@ -38,6 +38,27 @@ body {
   padding-top: 72px;
 }
 
+/* #root (not body) is the actual flex container for Navbar/page content/
+   Footer — App.tsx renders all three as its children, and body's only
+   child is #root itself. Without this, the Footer just sits directly
+   after whatever page content ends, wherever that happens to be — on a
+   page shorter than the viewport (Level, Workout, etc.) that leaves it
+   floating partway up the screen instead of anchored to the bottom. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 72px); /* matches body's own navbar offset above */
+}
+
+/* The routed page content — grows to fill whatever vertical space isn't
+   used by the Footer, pushing the Footer down to the bottom of the
+   viewport on short pages, while still scrolling normally past it on tall
+   ones. Navbar doesn't need this treatment — position: fixed removes it
+   from flex layout entirely, so it doesn't compete for this space. */
+.app-main {
+  flex: 1 0 auto;
+}
+
 .wrap {
   max-width: 1240px;
   margin: 0 auto;
